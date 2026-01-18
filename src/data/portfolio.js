@@ -23,6 +23,7 @@ export const profile = {
     name: "Felipe Cabrera",
     role: "Full Stack Developer",
     bio: "Apasionado por conectar datos complejos con interfaces humanas intuitivas.",
+    keywords: ["nasa", "space apps", "data challenge", "fastapi", "python", "machine learning", "full stack developer", "felipe cabrera"],
     location: "Uruguay",
     age: "21 años",
     avatarUrl: "/avatar.jpg",

@@ -28,7 +28,7 @@ export default function Home() {
                   <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-medium text-white mb-1">{profile.name}</h2>
+                  <h1 className="text-xl font-medium text-white mb-1">{profile.name}</h1>
                   <p className="text-sm text-neutral-500 font-mono">{profile.role}</p>
                 </div>
                 <p className="text-sm text-neutral-400 leading-relaxed">

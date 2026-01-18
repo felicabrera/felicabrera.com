@@ -23,6 +23,9 @@ export const metadata = {
     locale: 'es_UY',
     type: 'website',
   },
+  alternates: {
+    canonical: 'https://felicabrera.com'
+  },
   robots: {
     index: true,
     follow: true,
