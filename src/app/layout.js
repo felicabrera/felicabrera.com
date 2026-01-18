@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { profile, socialLinks } from "@/data/portfolio";
+import Analytics from '@/components/Analytics';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -74,6 +75,7 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
       >
         {children}
+        <Analytics />
       </body>
     </html>
   );

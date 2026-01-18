@@ -1,9 +1,10 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-const BentoCard = ({ children, className = "", title, icon, onClick, glass = true }) => (
+const BentoCard = ({ children, className = "", title, icon, onClick, glass = true, dataGa }) => (
     <div
         onClick={onClick}
+        data-ga={dataGa}
         className={`
       ${glass ? 'glass-panel hover:bg-[#111] hover:border-white/10' : ''}
       rounded-2xl p-6 flex flex-col 

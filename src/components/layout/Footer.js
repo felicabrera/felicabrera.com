@@ -14,7 +14,7 @@ const Footer = () => {
                     if (!isGithub && !(link.url || '').startsWith('mailto:')) relValues.push('nofollow');
 
                     return (
-                        <a key={link.name} href={link.url} target="_blank" rel={relValues.join(' ')} className="hover:text-white transition-colors flex items-center gap-2">
+                        <a key={link.name} href={link.url} target="_blank" rel={relValues.join(' ')} data-ga={`social:${(link.name || '').toLowerCase().replace(/\s+/g,'-')}`} className="hover:text-white transition-colors flex items-center gap-2">
                                             {icons[link.icon] && <FontAwesomeIcon icon={icons[link.icon]} /> }
                             {link.name}
                         </a>

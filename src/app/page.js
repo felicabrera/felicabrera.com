@@ -21,7 +21,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-[minmax(180px,auto)]">
 
           {/* Profile Card */}
-          <BentoCard className="md:col-span-1 md:row-span-2 relative overflow-hidden bg-[#0e0e11] border border-white/5" title="Sobre Mí" icon={icons.mapPin}>
+          <BentoCard dataGa="bento:sobre-mi" className="md:col-span-1 md:row-span-2 relative overflow-hidden bg-[#0e0e11] border border-white/5" title="Sobre Mí" icon={icons.mapPin}>
             <div className="flex flex-col h-full justify-between relative z-10">
               <div className="space-y-6">
                 <div className="w-24 h-24 rounded-full bg-neutral-800 overflow-hidden grayscale hover:grayscale-0 transition-all duration-700 ease-out border border-white/10">
@@ -45,7 +45,7 @@ export default function Home() {
           </BentoCard>
 
           {/* Featured Achievement */}
-          <BentoCard className="md:col-span-2 group cursor-pointer bg-[#0e0e11] border-white/5 hover:border-white/10" title="Premio Destacado" icon={icons.trophy}>
+          <BentoCard dataGa="bento:premio-destacado" className="md:col-span-2 group cursor-pointer bg-[#0e0e11] border-white/5 hover:border-white/10" title="Premio Destacado" icon={icons.trophy}>
             <div className="flex flex-col md:flex-row items-start gap-6 h-full p-2">
               <div className="bg-white text-black p-5 rounded-2xl shrink-0 flex items-center justify-center aspect-square h-20 w-20">
                 <FontAwesomeIcon icon={icons.trophy} size="2x" />
@@ -66,7 +66,7 @@ export default function Home() {
 
 
           {/* Secondary Achievement (UTE) */}
-          <BentoCard className="md:col-span-1 flex flex-col justify-center" title="Reconocimiento" icon={icons.trophy}>
+          <BentoCard dataGa="bento:reconocimiento" className="md:col-span-1 flex flex-col justify-center" title="Reconocimiento" icon={icons.trophy}>
             <div className="h-full flex flex-col justify-between">
               <div className="flex justify-between items-start">
                 <div>
@@ -82,7 +82,7 @@ export default function Home() {
           </BentoCard>
 
           {/* Projects */}
-          <BentoCard className="md:col-span-2 md:row-span-2" title="Proyectos Seleccionados" icon={icons.code}>
+          <BentoCard dataGa="bento:proyectos-seleccionados" className="md:col-span-2 md:row-span-2" title="Proyectos Seleccionados" icon={icons.code}>
             <div className="flex flex-col h-full gap-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
               {projects.map((project) => (
                 <ProjectCard key={project.title} {...project} />
@@ -92,6 +92,7 @@ export default function Home() {
 
           {/* Blog (White Card) */}
           <BentoCard
+            dataGa="bento:blog-card"
             glass={false}
             className="md:col-span-1 md:row-span-2 bg-[#e5e5e5] hover:bg-white text-black border-none"
             title=""
@@ -105,7 +106,7 @@ export default function Home() {
                 <p className="text-sm text-neutral-600 leading-relaxed font-medium">Reflexiones sobre el desarrollo de software moderno y mi viaje en la tecnología.</p>
               </div>
               <div className="mt-4">
-                <Link href="/blog" className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider border-b-2 border-transparent hover:border-black transition-all pb-0.5">
+                <Link href="/blog" data-ga="nav:blog-link" className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider border-b-2 border-transparent hover:border-black transition-all pb-0.5">
                   Leer artículos
                 </Link>
               </div>
@@ -122,14 +123,14 @@ export default function Home() {
           </BentoCard>
 
           {/* Contact CTA */}
-          <BentoCard glass={false} className="md:col-span-1 flex flex-col justify-center text-center py-8 bg-[#0a0a0a] border border-white/5" title="" icon={null} onClick={() => window.location.href = `mailto:${profile.email}`}>
+          <BentoCard dataGa="bento:contact-cta" glass={false} className="md:col-span-1 flex flex-col justify-center text-center py-8 bg-[#0a0a0a] border border-white/5" title="" icon={null} onClick={() => window.location.href = `mailto:${profile.email}`}>
             <div className="flex flex-col items-center justify-center h-full gap-4">
               <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-neutral-400 border border-white/5">
                 <FontAwesomeIcon icon={icons.envelope} />
               </div>
               <div>
                 <h3 className="text-neutral-500 text-xs font-medium mb-1">¿Nuevo proyecto?</h3>
-                <a href={`mailto:${profile.email}`} className="text-lg text-white font-bold hover:text-neutral-300 transition-colors">
+                <a href={`mailto:${profile.email}`} data-ga="contact:mailto" className="text-lg text-white font-bold hover:text-neutral-300 transition-colors">
                   Hablemos
                 </a>
               </div>
