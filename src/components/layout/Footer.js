@@ -15,7 +15,7 @@ const Footer = () => {
 
                     return (
                         <a key={link.name} href={link.url} target="_blank" rel={relValues.join(' ')} className="hover:text-white transition-colors flex items-center gap-2">
-                            {icons[link.icon] && <FontAwesomeIcon icon={icons[link.icon]} />}
+                                            {icons[link.icon] && <FontAwesomeIcon icon={icons[link.icon]} /> }
                             {link.name}
                         </a>
                     );

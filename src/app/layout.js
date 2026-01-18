@@ -36,8 +36,7 @@ export const metadata = {
     card: "summary_large_image",
     title: profile.name,
     description: "Estudiante de Ingeniería y analista de seguridad. Desarrollador Full Stack en datos y ML (HEA, Calorflow). Experto en Python y FastAPI. Abierto a colaborar",
-    site: "@your_twitter_handle", // Replace with actual Twitter handle
-    creator: "@your_twitter_handle", // Replace with actual Twitter handle
+    ...(profile.twitter && { site: profile.twitter, creator: profile.twitter }),
   },
 };
 

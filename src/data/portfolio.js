@@ -1,5 +1,5 @@
 
-import { faGithub, faLinkedin, faTwitter, faInstagram } from '@fortawesome/free-brands-svg-icons';
+import { faGithub, faLinkedin, faTwitter, faInstagram, faXTwitter } from '@fortawesome/free-brands-svg-icons';
 import { faMapPin, faTrophy, faNewspaper, faCode, faEnvelope, faGlobe, faArrowUpRightFromSquare, faBars, faTimes, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 
 export const icons = {
@@ -16,6 +16,7 @@ export const icons = {
     linkedin: faLinkedin,
     github: faGithub,
     twitter: faTwitter,
+    x: faXTwitter,
     instagram: faInstagram,
 };
 
@@ -28,12 +29,14 @@ export const profile = {
     age: "21 años",
     avatarUrl: "/avatar.jpg",
     status: "Disponible para nuevos retos",
+    twitter: "@thefelieppe",
     email: "me@felieppe.com"
 };
 
 export const socialLinks = [
     { name: "LinkedIn", url: "https://www.linkedin.com/in/felicabrera/", icon: "linkedin" },
     { name: "GitHub", url: "https://github.com/felicabrera/", icon: "github" },
+    { name: "X", url: "https://x.com/thefelieppe", icon: "x" },
     { name: "Instagram", url: "http://instagram.com/feli_cabrera", icon: "instagram" },
     { name: "Mail", url: "mailto:me@felieppe.com", icon: "envelope" }
 ];
