@@ -16,6 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "Felipe Cabrera - Desarrollador Full Stack | Data & Space Apps",
   description: "Estudiante de Ingeniería y analista de seguridad. Desarrollador Full Stack en datos y ML (HEA, Calorflow). Experto en Python y FastAPI. Abierto a colaborar",
+
   openGraph: {
     title: profile.name,
     description: "Estudiante de Ingeniería y analista de seguridad. Desarrollador Full Stack en datos y ML (HEA, Calorflow). Experto en Python y FastAPI. Abierto a colaborar",
@@ -64,6 +65,9 @@ export default function RootLayout({ children }) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
         />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Goldman:wght@400;700&display=swap" rel="stylesheet" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />

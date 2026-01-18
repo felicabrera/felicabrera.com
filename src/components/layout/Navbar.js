@@ -9,8 +9,7 @@ const Navbar = () => {
         <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-6 bg-[#050505]/80 backdrop-blur-xl border-b border-white/5">
             <div className="max-w-6xl mx-auto flex justify-between items-center">
                 <div className="text-lg font-semibold tracking-tight text-white flex items-center gap-2">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                    Felipe Cabrera
+                    <span className="font-goldman text-xl">FELIPE CABRERA</span>
                 </div>
 
                 {/* Desktop Menu */}

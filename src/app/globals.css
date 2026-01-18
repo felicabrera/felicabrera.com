@@ -49,3 +49,12 @@ body {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
+
+/* Goldman font for site title */
+.font-goldman {
+  font-family: 'Goldman', cursive;
+  font-weight: 400 !important;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  transform: scaleY(1.3);
+}
