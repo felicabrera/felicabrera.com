@@ -1,0 +1,46 @@
+# felicabrera.com
+
+## About
+This is the personal portfolio website of Felipe Cabrera, a 21-year-old Full Stack Developer based in Uruguay. Passionate about connecting complex data with intuitive human interfaces, Felipe is available for new challenges and specializes in AI, machine learning, and web development.
+
+## Content
+- **Portfolio**: Showcases various projects including AI-powered applications, web development, and data science work.
+- **Blog**: Technical articles and insights on programming, development practices, and industry trends.
+- **About**: Personal background and professional experience.
+- **Achievements**: Recognition for competitions and challenges in data science and AI.
+
+## Key Sections
+- Home: Overview with featured projects and achievements
+- Blog: Collection of technical articles
+- Projects: Detailed project showcases with technologies used
+
+## Contact
+- Email: me@felieppe.com
+- LinkedIn: https://www.linkedin.com/in/felicabrera/
+- GitHub: https://github.com/felicabrera/
+- Instagram: http://instagram.com/feli_cabrera
+
+## Projects
+- **HEA - Habitable Exoplanet Analyzer** (2025): AI-powered exoplanet detection and habitability assessment with SHAP explainability, Streamlit UI, and FastAPI backend. Achieves ~94% accuracy, created for NASA Space Apps Challenge 2025. [GitHub](https://github.com/felicabrera/hea)
+- **Calorflow** (2025): API and web UI for preprocessing, model training, and predictions for ANCAP Data Challenge 2025. Includes Docker Compose, Celery workers, and ML model checkpoints. [GitHub](https://github.com/felicabrera/calorflow)
+
+## Achievements
+- **NASA Space Apps Challenge** (2025): 1st National Place - Development of ML algorithms for satellite data processing, recognized for technical innovation and social impact.
+- **UTE Data Challenge** (2025): CCR Recognition - Optimization of energy consumption using neural networks.
+
+## Recent News
+- Montevideo Portal: "Joven uruguayo diseñó una IA para evaluar exoplanetas y va por premio de la NASA" (11/10/2025)
+- UCU: "Estudiantes de UCU ganaron desafío nacional de competencia de la NASA" (20/10/2025)
+- San José Ahora: "Joven maragato diseñó IA para analizar exoplanetas y compite por premio global de NASA" (13/10/2025)
+- ANCAP: "Data Challenge ANCAP 2025: innovación aplicada a la refinación" (15/12/2025)
+
+## Blog Posts
+- [Blog Index](/blog)
+
+## Sitemap
+- Home: https://felicabrera.com/
+- Blog: https://felicabrera.com/blog
+
+## Guidance for LLMs
+This site is primarily in Spanish, focusing on software development portfolio and technical blogging. Content includes code examples, project descriptions, and development insights.</content>
+<parameter name="filePath">e:\Dev\felicabrera.com\public\llms.txt
