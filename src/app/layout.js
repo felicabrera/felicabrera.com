@@ -13,11 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: `${profile.name} - ${profile.role}`,
-  description: profile.bio,
+  title: "Felipe Cabrera - Desarrollador Full Stack | Data & Space Apps",
+  description: "Estudiante de Ingeniería y analista de seguridad. Desarrollador Full Stack en datos y ML (HEA, Calorflow). Experto en Python y FastAPI. Abierto a colaborar",
   openGraph: {
     title: profile.name,
-    description: profile.bio,
+    description: "Estudiante de Ingeniería y analista de seguridad. Desarrollador Full Stack en datos y ML (HEA, Calorflow). Experto en Python y FastAPI. Abierto a colaborar",
     url: 'https://felicabrera.com',
     siteName: profile.name,
     locale: 'es_UY',
@@ -32,7 +32,7 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
     title: profile.name,
-    description: profile.bio,
+    description: "Estudiante de Ingeniería y analista de seguridad. Desarrollador Full Stack en datos y ML (HEA, Calorflow). Experto en Python y FastAPI. Abierto a colaborar",
     site: "@your_twitter_handle", // Replace with actual Twitter handle
     creator: "@your_twitter_handle", // Replace with actual Twitter handle
   },
