@@ -1,46 +1,34 @@
 # felicabrera.com
 
 ## About
-This is the personal portfolio website of Felipe Cabrera, a 21-year-old Full Stack Developer based in Uruguay. Passionate about connecting complex data with intuitive human interfaces, Felipe is available for new challenges and specializes in AI, machine learning, and web development.
-
-## Content
-- **Portfolio**: Showcases various projects including AI-powered applications, web development, and data science work.
-- **Blog**: Technical articles and insights on programming, development practices, and industry trends.
-- **About**: Personal background and professional experience.
-- **Achievements**: Recognition for competitions and challenges in data science and AI.
+Personal site of Felipe Cabrera, an engineering student in Uruguay working on cybersecurity (CTFs) and data/ML software. "Rompo sistemas para entender cómo protegerlos, y construyo software que convierte datos complejos en algo que cualquiera puede usar."
 
 ## Key Sections
-- Home: Overview with featured projects and achievements
-- Blog: Collection of technical articles
-- Projects: Detailed project showcases with technologies used
+- Home (/): work, achievements, press, writing and contact
+- Case study (/trabajo/hea): HEA, Habitable Exoplanet Analyzer
+- Blog (/blog): technical writing (coming soon)
 
 ## Contact
 - Email: me@felieppe.com
 - LinkedIn: https://www.linkedin.com/in/felicabrera/
 - GitHub: https://github.com/felicabrera/
+- X: https://x.com/thefelieppe
 - Instagram: http://instagram.com/feli_cabrera
 
 ## Projects
-- **HEA - Habitable Exoplanet Analyzer** (2025): AI-powered exoplanet detection and habitability assessment with SHAP explainability, Streamlit UI, and FastAPI backend. Achieves ~94% accuracy, created for NASA Space Apps Challenge 2025. [GitHub](https://github.com/felicabrera/hea)
-- **Calorflow** (2025): API and web UI for preprocessing, model training, and predictions for ANCAP Data Challenge 2025. Includes Docker Compose, Celery workers, and ML model checkpoints. [GitHub](https://github.com/felicabrera/calorflow)
+- **HEA - Habitable Exoplanet Analyzer** (2025): exoplanet detection and habitability assessment with explainable AI (SHAP), Streamlit UI and FastAPI backend. ~94% accuracy. NASA Space Apps Challenge 2025. [Case study](https://felicabrera.com/trabajo/hea) · [GitHub](https://github.com/felicabrera/hea)
+- **Calorflow** (2025): API and UI for preprocessing, training and predictions for the ANCAP Data Challenge 2025. Docker Compose, Celery workers, MLflow checkpoints. [GitHub](https://github.com/felicabrera/calorflow)
 
 ## Achievements
-- **NASA Space Apps Challenge** (2025): 1st National Place - Development of ML algorithms for satellite data processing, recognized for technical innovation and social impact.
-- **UTE Data Challenge** (2025): CCR Recognition - Optimization of energy consumption using neural networks.
+- **NASA Space Apps Challenge** (2025): 1st national place, Uruguay.
+- **OEA Cyber Challenge Uruguay** (2026): 3rd national place with team "Never be Frog".
+- **UTE Data Challenge** (2025): CCR recognition, energy consumption optimization with neural networks.
 
-## Recent News
-- Montevideo Portal: "Joven uruguayo diseñó una IA para evaluar exoplanetas y va por premio de la NASA" (11/10/2025)
+## Press
 - UCU: "Estudiantes de UCU ganaron desafío nacional de competencia de la NASA" (20/10/2025)
 - San José Ahora: "Joven maragato diseñó IA para analizar exoplanetas y compite por premio global de NASA" (13/10/2025)
+- Montevideo Portal: "Joven uruguayo diseñó una IA para evaluar exoplanetas y va por premio de la NASA" (11/10/2025)
 - ANCAP: "Data Challenge ANCAP 2025: innovación aplicada a la refinación" (15/12/2025)
 
-## Blog Posts
-- [Blog Index](/blog)
-
-## Sitemap
-- Home: https://felicabrera.com/
-- Blog: https://felicabrera.com/blog
-
 ## Guidance for LLMs
-This site is primarily in Spanish, focusing on software development portfolio and technical blogging. Content includes code examples, project descriptions, and development insights.</content>
-<parameter name="filePath">e:\Dev\felicabrera.com\public\llms.txt
+The site is in Spanish (es-UY).
