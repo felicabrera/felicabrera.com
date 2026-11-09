@@ -3,11 +3,17 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { execFileSync } from 'child_process';
+import { projectsWithCase } from '../src/data/portfolio.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_DIR = path.join(__dirname, '../src/app');
 const PUBLIC_DIR = path.join(__dirname, '../public');
 const SITE_URL = 'https://felicabrera.com';
+
+// Values for dynamic route segments, keyed by the route base that contains them.
+const DYNAMIC_PARAMS = {
+    '/trabajo/[slug]': () => projectsWithCase().map((p) => p.slug),
+};
 
 function formatDate(d) {
     if (!d) return new Date().toISOString().split('T')[0];
@@ -31,9 +37,17 @@ function getPageRoutes(dir = APP_DIR, base = '') {
             }
         } else if (file === 'page.js' && !isErrorPage) {
             // For app router, page.js defines the route
-            const routeStr = base.toLowerCase() || '/';
             const gitDate = getGitLastCommitDate(fullPath);
-            routes.push({ route: routeStr, lastmod: gitDate || stat.mtime, source: gitDate ? 'git' : 'fs' });
+            const entry = { lastmod: gitDate || stat.mtime, source: gitDate ? 'git' : 'fs' };
+            if (/\[.+\]/.test(base)) {
+                const expand = DYNAMIC_PARAMS[base];
+                if (!expand) continue; // unknown dynamic route: skip rather than emit a literal [param]
+                for (const value of expand()) {
+                    routes.push({ route: base.replace(/\[[^\]]+\]/, value).toLowerCase(), ...entry });
+                }
+            } else {
+                routes.push({ route: base.toLowerCase() || '/', ...entry });
+            }
         }
     }
     return routes;
