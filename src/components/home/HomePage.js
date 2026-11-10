@@ -9,12 +9,14 @@ import {
     Work,
     Writing,
 } from "@/components/home/Sections";
+import { JsonLd, profilePageSchema } from "@/lib/seo";
 
 export default function HomePage({ lang }) {
     return (
         <div className="shell">
             <div className="wrap">
                 <SiteHeader lang={lang} />
+                <JsonLd data={profilePageSchema(lang)} />
                 <main>
                     <Hero lang={lang} />
                     <Intro lang={lang} />

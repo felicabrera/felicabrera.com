@@ -16,7 +16,9 @@ export function ogImage(lang) {
     };
 }
 
-export function openGraph(lang, { title, description, url, type = "website", ...extra }) {
+// A page with its own generated opengraph-image passes `ownImage`: an explicit
+// `images` here would take precedence over the generated file.
+export function openGraph(lang, { title, description, url, type = "website", ownImage = false, ...extra }) {
     return {
         title,
         description,
@@ -25,7 +27,7 @@ export function openGraph(lang, { title, description, url, type = "website", ...
         locale: ogLocale[lang],
         alternateLocale: locales.filter((l) => l !== lang).map((l) => ogLocale[l]),
         type,
-        images: [ogImage(lang)],
+        ...(ownImage ? {} : { images: [ogImage(lang)] }),
         ...extra,
     };
 }
@@ -49,12 +51,17 @@ export function personSchema(lang) {
         "@type": "Person",
         "@id": personId,
         name: profile.name,
+        givenName: "Felipe",
+        familyName: "Cabrera",
+        // The handle used across GitHub, LinkedIn and this domain.
+        alternateName: "felicabrera",
         url: site.url,
         image: `${site.url}${profile.avatarUrl}`,
         jobTitle: tx(profile.role, lang),
         description: tx(profile.intro, lang),
         email: `mailto:${profile.email}`,
         sameAs: socialLinks.map((link) => link.url),
+        nationality: { "@type": "Country", name: "Uruguay" },
         address: {
             "@type": "PostalAddress",
             addressLocality: profile.city,
@@ -79,6 +86,21 @@ export function websiteSchema(lang) {
         description: tx(site.description, lang),
         inLanguage: lang,
         publisher: { "@id": personId },
+    };
+}
+
+// The home page is the canonical profile of the person: ProfilePage tells
+// search engines this page is about them, which helps it rank for their name.
+export function profilePageSchema(lang) {
+    const url = `${site.url}${homePath(lang) === "/" ? "" : homePath(lang)}`;
+    return {
+        "@type": "ProfilePage",
+        "@id": `${url}#profile`,
+        url,
+        name: tx(site.title, lang),
+        inLanguage: lang,
+        mainEntity: { "@id": personId },
+        isPartOf: { "@id": websiteId },
     };
 }
 
