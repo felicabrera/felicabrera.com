@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import BlogArticle from "@/components/blog/BlogArticle";
-import { buildPostMetadata, getPost, getPostSlugs, getTranslationSlug } from "@/lib/blog";
+import { buildPostMetadata, getPost, getStaticParams, getTranslationSlug } from "@/lib/blog";
 
 const lang = "es";
 
 export function generateStaticParams() {
-    return getPostSlugs(lang).map((slug) => ({ slug }));
+    return getStaticParams(lang);
 }
 
 export async function generateMetadata({ params }) {

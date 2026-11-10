@@ -97,6 +97,17 @@ export function getPostSlugs(lang) {
     return getPosts(lang).map((p) => p.slug);
 }
 
+// Params for the [slug] route's generateStaticParams. With cacheComponents
+// enabled, generateStaticParams must return at least one entry, so when a
+// locale has no published posts we emit a sentinel slug that getPost rejects
+// and the page turns into a 404. It never appears in the sitemap.
+export const NO_POSTS_SENTINEL = "__no-posts__";
+export function getStaticParams(lang) {
+    const slugs = getPostSlugs(lang);
+    if (slugs.length === 0) return [{ slug: NO_POSTS_SENTINEL }];
+    return slugs.map((slug) => ({ slug }));
+}
+
 export function getPost(lang, slug) {
     const post = allPosts().find((p) => p.lang === lang && p.slug === slug);
     if (!post) return null;
