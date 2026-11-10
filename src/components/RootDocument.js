@@ -1,30 +1,36 @@
-import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
+import localFont from "next/font/local";
 import "@/app/globals.css";
 import { profile, site } from "@/data/portfolio";
 import { homePath, tx } from "@/data/i18n";
 import Analytics from "@/components/Analytics";
 import { JsonLd, openGraph, personSchema, twitter, websiteSchema } from "@/lib/seo";
+import { feedPath } from "@/lib/feed";
+import { t } from "@/lib/blog";
 
 // Shared by the Spanish and English root layouts. Each language is its own
 // route group with its own root layout so <html lang> is correct for every
 // page; they only differ in `lang`.
 
-const inter = Inter({
+// Fonts are self-hosted (src/fonts, latin subset, SIL OFL) so the build never
+// depends on reaching Google Fonts. Inter and JetBrains Mono are variable fonts.
+const inter = localFont({
+    src: "../fonts/Inter-latin.woff2",
     variable: "--font-inter",
-    subsets: ["latin"],
-    weight: ["400", "500", "600"],
+    weight: "400 600",
 });
 
-const jetbrains = JetBrains_Mono({
+const jetbrains = localFont({
+    src: "../fonts/JetBrainsMono-latin.woff2",
     variable: "--font-jetbrains",
-    subsets: ["latin"],
-    weight: ["400", "500"],
+    weight: "400 500",
+    adjustFontFallback: false,
 });
 
-const sourceSerif = Source_Serif_4({
+const sourceSerif = localFont({
+    src: "../fonts/SourceSerif4-SemiBold-latin.woff2",
     variable: "--font-source-serif",
-    subsets: ["latin"],
-    weight: ["600"],
+    weight: "600",
+    adjustFontFallback: "Times New Roman",
 });
 
 export const fontClassName = `${inter.variable} ${jetbrains.variable} ${sourceSerif.variable}`;
@@ -64,6 +70,14 @@ export const rootViewport = {
 export default function RootDocument({ lang, children }) {
     return (
         <html lang={lang} className={fontClassName}>
+            <head>
+                <link
+                    rel="alternate"
+                    type="application/rss+xml"
+                    title={`${profile.name}: ${t[lang].metaTitle}`}
+                    href={feedPath(lang)}
+                />
+            </head>
             <body>
                 <JsonLd data={[personSchema(lang), websiteSchema(lang)]} />
                 {children}

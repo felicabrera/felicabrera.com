@@ -757,6 +757,11 @@ h1, h2, h3, p, figure, dl, dd { margin: 0; }
   .btn { display: inline-flex; min-height: 48px; }
 }
 
+.case-writing { margin-top: 72px; }
+.case-writing h2 { padding-bottom: 10px; border-bottom: 1px solid var(--ink); font-size: 14px; font-weight: 500; }
+.case-writing .post-list { margin-top: 0; max-width: none; }
+@media (min-width: 640px) { .case-writing { margin-top: 120px; } }
+
 .case-next { margin-top: 72px; padding-top: 16px; border-top: 1px solid var(--ink); }
 .case-next a { display: block; margin-top: 10px; font-size: 38px; font-weight: 500; letter-spacing: -0.04em; }
 @media (min-width: 640px) {
@@ -873,6 +878,16 @@ h1, h2, h3, p, figure, dl, dd { margin: 0; }
 }
 @media (min-width: 640px) { .post-headline { font-size: clamp(36px, 5vw, 56px); } }
 .post-tags-top { margin-top: 16px; }
+
+.post-case {
+  max-width: 760px;
+  margin-top: 64px;
+  padding: 20px 0;
+  border-top: 1px solid var(--ink);
+}
+.post-case a { display: block; margin-top: 10px; font-size: 28px; font-weight: 500; letter-spacing: -0.03em; line-height: 1.15; }
+.post-case + .post-foot { margin-top: 0; }
+@media (min-width: 640px) { .post-case a { font-size: 36px; } }
 
 .post-foot {
   display: flex;

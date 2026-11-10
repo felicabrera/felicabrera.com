@@ -10,7 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
-import { blogPath, languageAlternates, profile, site } from "@/data/portfolio";
+import { blogPath, buildDate, languageAlternates, profile, site } from "@/data/portfolio";
 import { defaultLocale } from "@/data/i18n";
 import { openGraph } from "@/lib/seo";
 
@@ -30,6 +30,18 @@ const BLOG_DIR = path.join(process.cwd(), "content", "blog");
 // and outside production (local dev) they are always shown.
 function showDrafts() {
     return process.env.BLOG_SHOW_DRAFTS === "1" || process.env.NODE_ENV !== "production";
+}
+
+// A post dated after the build day (Montevideo) is scheduled: it stays out of
+// the build like a draft until a build on or after its date. The deploy
+// workflow rebuilds on the day a scheduled post or project goes out.
+function isScheduled(post) {
+    const date = post.frontmatter.date;
+    return Boolean(date) && String(date).slice(0, 10) > buildDate();
+}
+
+function isVisible(post) {
+    return showDrafts() || (!post.frontmatter.draft && !isScheduled(post));
 }
 
 function readDir() {
@@ -65,6 +77,9 @@ function readPostFile(file) {
             author: data.author ?? "Felipe Cabrera",
             translationKey: data.translationKey ?? parsed.slug,
             draft: data.draft === true,
+            // Slug of the project in src/data/portfolio.js the post is about,
+            // which links the post and the case study both ways.
+            project: data.project ?? null,
         },
     };
 }
@@ -83,8 +98,13 @@ function byDateDesc(a, b) {
 export function getPosts(lang) {
     return allPosts()
         .filter((p) => p.lang === lang)
-        .filter((p) => showDrafts() || !p.frontmatter.draft)
+        .filter(isVisible)
         .sort(byDateDesc);
+}
+
+// Published posts about a project, newest first.
+export function getProjectPosts(lang, projectSlug) {
+    return getPosts(lang).filter((p) => p.frontmatter.project === projectSlug);
 }
 
 // Slugs to statically generate for a locale (drafts excluded in production,
@@ -107,14 +127,13 @@ export function getStaticParams(lang) {
 export function getPost(lang, slug) {
     const post = allPosts().find((p) => p.lang === lang && p.slug === slug);
     if (!post) return null;
-    if (post.frontmatter.draft && !showDrafts()) return null;
-    return post;
+    return isVisible(post) ? post : null;
 }
 
 // The slug of the same post in another language, or null if untranslated.
 export function getTranslationSlug(translationKey, lang) {
     const match = allPosts().find(
-        (p) => p.lang === lang && p.frontmatter.translationKey === translationKey,
+        (p) => p.lang === lang && p.frontmatter.translationKey === translationKey && isVisible(p),
     );
     return match ? match.slug : null;
 }
@@ -159,6 +178,7 @@ export function buildPostMetadata(lang, slug) {
             description,
             url,
             type: "article",
+            ownImage: true,
             ...(date ? { publishedTime: date } : {}),
             authors: [site.url],
             tags,
@@ -198,6 +218,7 @@ export const t = {
         draftBadge: "borrador",
         by: "por",
         related: "relacionado",
+        partOfCase: "este artículo es parte del",
         allPosts: "todos los artículos",
     },
     en: {
@@ -215,6 +236,7 @@ export const t = {
         draftBadge: "draft",
         by: "by",
         related: "related",
+        partOfCase: "this post is part of",
         allPosts: "all posts",
     },
 };

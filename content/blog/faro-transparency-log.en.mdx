@@ -1,0 +1,68 @@
+---
+title: "FARO: an auditable log without a blockchain"
+description: "How FARO, ÁGORA's public log, proves a ballot was recorded and that the log was never rewritten, using Tessera, C2SP tlog-tiles and Merkle proofs."
+date: "2026-11-13"
+lang: "en"
+translationKey: "faro-log"
+project: "agora"
+tags: ["cryptography", "e-voting", "transparency-log", "merkle", "go"]
+author: "Felipe Cabrera"
+draft: true
+---
+
+Every time I talk about verifiable voting someone asks: "so does it go on a blockchain?" No. FARO, the public log of [ÁGORA](https://github.com/felicabrera/agora), answers a single question, and answers it in a way that does not require trusting us:
+
+**Is this encrypted ballot in the log, and was the log tampered with?**
+
+That needs no distributed consensus and no token. It needs an append-only Merkle tree, the same idea behind Certificate Transparency, the system that audits HTTPS certificates across the web.
+
+## Two proofs, two questions
+
+- **Inclusion proof.** Shows an entry is in a tree with root `R`, using about log₂(n) hashes. It lets a voter say "my ballot was recorded".
+- **Consistency proof.** Shows an older tree is a prefix of a newer one: nothing was reordered, edited or deleted. It lets an auditor say "the log was not tampered with".
+
+The cost of auditing grows with `log n`, not `n`. Measured with [ÁBACO](https://github.com/felicabrera/abaco): when the log goes from a thousand to a million entries (1,000× more), the inclusion proof goes from 10 to 20 hashes, from 320 to 640 bytes, and checking it still takes a couple of microseconds. Anyone can audit from a laptop.
+
+## FARO does not know what a ballot is
+
+FARO stores opaque bytes and proves it did not change them. Whether those bytes are a valid ballot is ÁGORA's call, through its zero-knowledge proofs. The boundary is deliberate: FARO can be audited on its own, without understanding anything about elections.
+
+## Why Tessera and not our own Merkle tree
+
+FARO does not implement its tree. It uses [Tessera](https://github.com/transparency-dev/tessera), the transparency-dev library that also backs production Certificate Transparency logs, and serves the result over the [C2SP tlog-tiles](https://c2sp.org/tlog-tiles) API.
+
+Writing the tree ourselves would mean asking an auditor to trust a custom implementation of exactly the component everything else depends on. With the same library and the same format as CT, an auditor can point existing verifiers, written by third parties, at FARO.
+
+## Static files
+
+The read API is **static files**: every byte an auditor needs is on disk, in a documented, standard format. The log can be mirrored, archived or served from any web server without running our binary. A log that can only be read through its own API is a log you have to trust; this one is not.
+
+Trying it is short:
+
+```console
+$ ./bin/faro-verify keygen --name faro.local/dev
+$ export FARO_SIGNING_KEY='PRIVATE+KEY+faro.local/dev+...'
+$ ./bin/faro-log
+$ curl -X POST --data-binary 'hola' localhost:2025/add
+0
+$ curl localhost:2025/checkpoint
+faro.local/dev
+1
+7wRDNzWQ3aSAKuUCUQ0MDbFOhFPYxLp5nJUXHTEy0Cg=
+```
+
+The checkpoint is the log's origin, its size and its root, signed.
+
+## A small decision: no key, no start
+
+The signing key has no default, and FARO does not generate one when it is missing. A log that made up a key would start healthy and produce checkpoints nobody can verify against the published key. That is worse than not starting.
+
+## Known limits
+
+- **The write path is not authenticated yet.** That comes with the ÁGORA integration.
+- **There are no independent witnesses yet.** The [C2SP tlog-witness](https://c2sp.org/tlog-witness) protocol turns multi-party auditing into a property of the protocol instead of an institutional agreement. It is planned.
+- **The web explorer does not verify yet.** It shows the checkpoint as the server returned it, and says so on the page. In-browser verification is next, along with the CLI's `inclusion`, `consistency` and `monitor` subcommands.
+
+---
+
+Related: [FARO on GitHub](https://github.com/felicabrera/faro) · [RFC 6962](https://www.rfc-editor.org/rfc/rfc6962) · [C2SP tlog-tiles](https://c2sp.org/tlog-tiles)

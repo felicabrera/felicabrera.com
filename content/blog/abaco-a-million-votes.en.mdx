@@ -1,0 +1,82 @@
+---
+title: "ÁBACO: what it costs to count a million encrypted ballots"
+description: "We measured the full cryptographic pipeline of a verifiable election: a million ballots in 287 s, with 6.6 MiB of memory and a correct tally. How, and how to read the numbers."
+date: "2026-11-14"
+lang: "en"
+translationKey: "abaco-bench"
+project: "agora"
+tags: ["cryptography", "e-voting", "benchmark", "performance", "go"]
+author: "Felipe Cabrera"
+draft: true
+---
+
+One sentence shows up in almost every verifiable-voting proposal: "the computational cost of the cryptography is negligible". It may be true, but said like that it is an unsupported estimate. [ÁBACO](https://github.com/felicabrera/abaco) exists to turn it into a measured, reproducible, citable number.
+
+It is not a voting system. It is a measuring instrument: it runs the full cryptographic pipeline of [ÁGORA](https://github.com/felicabrera/agora), operation by operation, from a thousand up to ten million ballots.
+
+## What it measures
+
+For each ballot: encrypt each option with exponential ElGamal, generate and verify the zero-knowledge proof that it is 0 or 1, generate and verify the proof that the ballot has exactly one vote, add it to the encrypted total and append it to FARO's Merkle tree. At the end: each authority's partial decryption, Lagrange combination and recovering the tally.
+
+And most importantly: **at the end of every scale, the decrypted tally is compared with the expected one. If they differ, the run fails.** A benchmark of an incorrect operation is worth nothing.
+
+## The result
+
+On an AMD Ryzen 5 3600, one million ballots were processed in **287 seconds**, at about **3,500 ballots per second**, with **6.6 MiB** of peak memory and a correct tally.
+
+On an Apple M5 Pro (18 cores), with two candidates:
+
+| Ballots | Wall (median) | CPU work | Ballots/s | Peak heap |
+|---|---|---|---|---|
+| 1,000 | 171 ms | 2.9 s | 5,833 | 4.6 MiB |
+| 10,000 | 1.73 s | 29.2 s | 5,794 | 6.4 MiB |
+| 100,000 | 17.1 s | 288.7 s | 5,839 | 8.9 MiB |
+
+## How to read these numbers
+
+**Memory is flat.** A hundred times more ballots and the heap goes from 4.6 to 8.9 MiB. To me, this is the most valuable result. It is not luck: the pipeline never holds all the ballots. It works in batches; in parallel it encrypts, proves and verifies each ballot, then, in order, adds it to the accumulator, appends it to the Merkle tree and drops it. Peak memory depends on the batch size, `log n` and `√N`, not on the number of ballots.
+
+**Wall is not CPU.** At 100,000 ballots the wall-clock time is 17.1 s, but the summed CPU work is 288.7 s: about 17× speedup on 18 cores. Mixing up the two is an easy mistake to make and an easy one to catch, so they are reported separately.
+
+**The cost is in verifiability.** Broken down at 100,000 ballots:
+
+| Operation | Median | % of pipeline |
+|---|---|---|
+| Verify `{0,1}` proof | 454 µs | 42.8% |
+| Prove `{0,1}` | 336 µs | 31.5% |
+| Verify 1-of-C | 228 µs | 10.8% |
+| Encrypt | 95 µs | 9.5% |
+| Prove 1-of-C | 110 µs | 5.3% |
+| Homomorphic add | 708 ns | 0.1% |
+| Merkle append | 333 ns | 0.0% |
+
+Encrypting is under 10%; the proofs are about 90%. In other words: what makes ÁGORA different, that anyone can verify it, is exactly what dominates inside the cryptographic core. But in absolute terms it is one or two milliseconds of compute per ballot, nothing next to the network, the database or the interface of a real election. ÁBACO measures the core, and neither inflates nor hides that nuance.
+
+## Auditing is cheap
+
+FARO's proofs are measured separately, since they are not on the hot path. The log grows 1,000×, from a thousand to a million entries, and the inclusion proof goes from 10 to 20 hashes (320 → 640 bytes); verifying it, from 1.5 to 2.3 µs. That is `O(log n)`, not `O(n)`, and it is the whole argument for [FARO](https://github.com/felicabrera/faro).
+
+## Methodology
+
+- **Warmup** before measuring and **repetitions**, with the median as the main metric; mean, p95 and p99 too.
+- Percentiles through **reservoir sampling** (8,192 samples per operation), for stable statistics with bounded memory even at ten million ballots.
+- **Instrument overhead** measured and reported: a pair of `time.Now()` calls costs about 78 ns.
+- **Determinism:** randomness comes from the seed and each ballot's index, so the result is identical on 1 core or 8. Same seed, same ciphertexts, same tally, on any machine.
+- **Every run records** the CPU, Go version, commit, seed and parameters in a self-contained JSON.
+- **CI:** every push runs the same scales with the same seed and publishes a diff of medians against the previous commit, so the numbers are a time series rather than a snapshot.
+
+To really prove flat memory, `GOMEMLIMIT` is not enough (it is a soft limit). It runs in Docker with `--memory=1g --cpus=2`: going over 1 GB there is an OOM kill, so a run that finishes proves it.
+
+```console
+$ ./abaco bench --votes 1000,10000,100000 --repeat 3 --seed 42
+```
+
+## What ÁBACO does not say
+
+- It does not measure network, database or interface. Only the cryptographic core.
+- The implementation is a reference one: not audited and not hardened against side channels.
+- Timings depend on the hardware. A number measured on one machine does not carry over to another without running it there.
+
+---
+
+Related: [ÁBACO on GitHub](https://github.com/felicabrera/abaco) · [ÁGORA on GitHub](https://github.com/felicabrera/agora) · [FARO on GitHub](https://github.com/felicabrera/faro)

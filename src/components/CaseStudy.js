@@ -13,6 +13,7 @@ import {
 } from "@/data/portfolio";
 import { homePath, otherLocale, tx, ui } from "@/data/i18n";
 import { JsonLd, breadcrumbSchema, openGraph, personId } from "@/lib/seo";
+import { formatPostDate, getProjectPosts, postPath } from "@/lib/blog";
 
 export function caseStaticParams() {
     return projectsWithCase().map((p) => ({ slug: p.slug }));
@@ -35,7 +36,7 @@ export function caseMetadata(slug, lang) {
             canonical: url,
             languages: languageAlternates({ es: casePath(project, "es"), en: casePath(project, "en") }),
         },
-        openGraph: openGraph(lang, { title: name, description, url, type: "article" }),
+        openGraph: openGraph(lang, { title: name, description, url, type: "article", ownImage: true }),
     };
 }
 
@@ -70,6 +71,7 @@ export default function CaseStudy({ project, lang }) {
     const next = nextProject(project.slug);
     const nextIsInternal = next && Boolean(next.caseStudy);
     const prompt = cs.chart && tx(cs.chart.prompt, lang);
+    const posts = getProjectPosts(lang, project.slug);
 
     return (
         <div className="shell">
@@ -131,6 +133,25 @@ export default function CaseStudy({ project, lang }) {
                             </a>
                         ))}
                     </div>
+
+                    {posts.length > 0 && (
+                        <section className="case-writing" aria-labelledby="case-writing">
+                            <h2 id="case-writing">{tr.caseWriting}</h2>
+                            <ul className="post-list">
+                                {posts.map((post) => (
+                                    <li key={post.slug}>
+                                        <Link className="row post-row" href={postPath(lang, post.slug)}>
+                                            <time className="post-date" dateTime={post.frontmatter.date ?? undefined}>
+                                                {formatPostDate(post.frontmatter.date, lang)}
+                                            </time>
+                                            <span className="post-title">{post.frontmatter.title}</span>
+                                            <span className="post-excerpt">{post.frontmatter.description}</span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </section>
+                    )}
 
                     {next && (
                         <nav aria-label={tr.next} className="case-next">

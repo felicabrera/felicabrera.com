@@ -9,11 +9,12 @@ export default function Analytics() {
   const pathname = usePathname();
   const sentScroll = useRef({ 25: false, 50: false, 75: false, 100: false });
 
-  // send a page_view on route change
+  // Page views are not sent from here: gtag('config') sends the first one and
+  // GA4's enhanced measurement tracks client-side navigations through the
+  // History API, so a manual page_view would count every page twice.
+  // Scroll depth is per page, so its thresholds reset on navigation.
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.gtag) {
-      window.gtag('event', 'page_view', { page_path: pathname });
-    }
+    sentScroll.current = { 25: false, 50: false, 75: false, 100: false };
   }, [pathname]);
 
   useEffect(() => {
