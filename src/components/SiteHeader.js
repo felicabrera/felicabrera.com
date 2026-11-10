@@ -1,6 +1,6 @@
 import Image from "next/image";
 import MobileMenu from "@/components/MobileMenu";
-import { blogPath, githubUrl, profile, sectionId, sectionNumber, sections, socialLinks } from "@/data/portfolio";
+import { about, aboutPath, blogPath, githubUrl, profile, sectionId, sectionNumber, sections, socialLinks } from "@/data/portfolio";
 import { homePath, otherLocale, tx, ui } from "@/data/i18n";
 
 const label = (key, lang) => tx(sections.find((s) => s.key === key).label, lang);
@@ -14,7 +14,10 @@ export default function SiteHeader({ lang }) {
     // The language switch goes to the other language's home page.
     const langLink = { label: ui[other].langName, href: homePath(other), hrefLang: other };
 
+    const aboutLink = { label: tx(about.label, lang), href: aboutPath(lang) };
+
     const desktopLinks = [
+        { key: "about", ...aboutLink },
         { key: "work", label: label("work", lang), href: anchor("work") },
         { key: "achievements", label: label("achievements", lang), href: anchor("achievements") },
         { key: "press", label: label("press", lang), href: anchor("press") },
@@ -33,6 +36,7 @@ export default function SiteHeader({ lang }) {
     ];
 
     const mobileSocial = [
+        aboutLink,
         { label: "github", href: githubUrl },
         ...(linkedin ? [{ label: "linkedin", href: linkedin.url }] : []),
         { label: "email", href: `mailto:${profile.email}` },
