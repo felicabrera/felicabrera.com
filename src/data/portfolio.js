@@ -13,8 +13,8 @@ export const site = {
         en: "Felipe Cabrera | Cybersecurity, engineering and code",
     },
     description: {
-        es: "Estudiante de Ingeniería en Uruguay. Ciberseguridad, CTFs y software de datos y ML. 1er lugar nacional NASA Space Apps 2025, 3er lugar OEA Cyber Challenge 2026.",
-        en: "Engineering student in Uruguay. Cybersecurity, CTFs, and data and ML software. 1st place nationally at NASA Space Apps 2025, 3rd place at the OEA Cyber Challenge 2026.",
+        es: "Felipe Cabrera, estudiante de Ingeniería en Uruguay: ciberseguridad, CTFs y software de datos y ML. 1er lugar nacional NASA Space Apps 2025, 3er lugar OEA Cyber Challenge 2026.",
+        en: "Felipe Cabrera, engineering student in Uruguay: cybersecurity, CTFs, and data and ML software. 1st place nationally at NASA Space Apps 2025, 3rd place at the OEA Cyber Challenge 2026.",
     },
     accent: "#ff4f1a",
 };
@@ -30,6 +30,8 @@ export function languageAlternates(paths) {
 
 export const profile = {
     name: "Felipe Cabrera",
+    // The full name the press uses.
+    fullName: "Felipe Cabrera Bisio",
     handle: "felicabrera",
     role: {
         es: "Ciberseguridad · Ingeniería · Código",
@@ -45,7 +47,8 @@ export const profile = {
     },
     location: "Uruguay",
     city: "Montevideo",
-    avatarUrl: "/avatar.jpg",
+    // Named after the person: image search reads the file name.
+    avatarUrl: "/felipe-cabrera.jpg",
     email: "me@felieppe.com",
     twitter: "@thefelieppe",
     // Shown in the footer only when set.
@@ -135,6 +138,81 @@ export const blog = {
 
 export function blogPath(lang) {
     return `${localePrefix(lang)}/blog`;
+}
+
+// The "about" page: /sobre-mi (es) and /en/about (en). It is the page meant
+// to answer the search "Felipe Cabrera", so it says in plain prose who he is.
+export const about = {
+    segment: { es: "sobre-mi", en: "about" },
+    label: { es: "sobre mí", en: "about" },
+    kicker: { es: "sobre mí", en: "about" },
+    metaTitle: {
+        es: "Quién es Felipe Cabrera | Ciberseguridad e ingeniería, Uruguay",
+        en: "About Felipe Cabrera | Cybersecurity and engineering, Uruguay",
+    },
+    metaDescription: {
+        es: "Felipe Cabrera (Felipe Cabrera Bisio) es estudiante de Ingeniería en Informática en la UCU, Uruguay. Ciberseguridad, CTFs, machine learning y voto electrónico verificable.",
+        en: "Felipe Cabrera (Felipe Cabrera Bisio) is a Computer Engineering student at UCU, Uruguay. Cybersecurity, CTFs, machine learning and verifiable electronic voting.",
+    },
+    // One line that tells this Felipe Cabrera apart from others with the name.
+    disambiguation: {
+        es: "Estudiante uruguayo de Ingeniería en Informática dedicado a la ciberseguridad y al software de datos",
+        en: "Uruguayan Computer Engineering student working on cybersecurity and data software",
+    },
+    facts: [
+        { label: { es: "nombre", en: "name" }, value: "Felipe Cabrera Bisio" },
+        { label: { es: "ubicación", en: "location" }, value: "Montevideo, Uruguay" },
+        {
+            label: { es: "estudios", en: "studies" },
+            value: {
+                es: "Ingeniería en Informática, Universidad Católica del Uruguay",
+                en: "Computer Engineering, Universidad Católica del Uruguay",
+            },
+        },
+        {
+            label: { es: "áreas", en: "fields" },
+            value: {
+                es: "Ciberseguridad · CTF · Machine learning · Criptografía aplicada",
+                en: "Cybersecurity · CTF · Machine learning · Applied cryptography",
+            },
+        },
+    ],
+    sections: [
+        {
+            title: { es: "quién soy", en: "who I am" },
+            body: {
+                es: "Soy Felipe Cabrera, estudiante de Ingeniería en Informática en la Universidad Católica del Uruguay (UCU). Soy de San José y vivo en Montevideo. Rompo sistemas para entender cómo protegerlos, y construyo software que convierte datos complejos en algo que cualquiera puede usar.",
+                en: "I am Felipe Cabrera, a Computer Engineering student at Universidad Católica del Uruguay (UCU). I am from San José and I live in Montevideo. I break systems to understand how to protect them, and I build software that turns complex data into something anyone can use.",
+            },
+        },
+        {
+            title: { es: "ciberseguridad", en: "cybersecurity" },
+            body: {
+                es: "Compito en CTFs, y mi categoría favorita es pwn: explotación de binarios. En 2026 salimos terceros a nivel nacional en el OEA Cyber Challenge Uruguay con el equipo Never be Frog, junto a Stefano Francolino. En el blog publico los writeups de los retos que resuelvo.",
+                en: "I compete in CTFs, and my favourite category is pwn: binary exploitation. In 2026 we placed third nationally at the OEA Cyber Challenge Uruguay with the team Never be Frog, together with Stefano Francolino. I publish writeups of the challenges I solve on the blog.",
+            },
+        },
+        {
+            title: { es: "datos y machine learning", en: "data and machine learning" },
+            body: {
+                es: "En 2025 gané el primer lugar nacional del NASA Space Apps Challenge en Uruguay con HEA, un analizador de exoplanetas habitables con IA explicable que presenté de forma individual. El mismo año, Calorflow recibió una mención especial en el ANCAP Data Challenge por predecir el contenido de H2 y el poder calorífico en la refinería de La Teja.",
+                en: "In 2025 I won first place nationally at the NASA Space Apps Challenge in Uruguay with HEA, a habitable exoplanet analyzer built on explainable AI that I entered on my own. The same year, Calorflow received a special mention at the ANCAP Data Challenge for predicting H2 content and heating value at the La Teja refinery.",
+            },
+        },
+        {
+            title: { es: "en qué estoy ahora", en: "what I am doing now" },
+            body: {
+                es: "Mi Proyecto Final de Grado es ÁGORA + FARO, un sistema de voto electrónico verificable de extremo a extremo: ElGamal homomórfico, pruebas de conocimiento cero y un log público auditable. Lo desarrollo con Stefano Francolino y Lucia Vazquez, con entrega en agosto de 2027.",
+                en: "My capstone thesis is ÁGORA + FARO, an end-to-end verifiable electronic voting system: homomorphic ElGamal, zero-knowledge proofs and a public auditable log. I am building it with Stefano Francolino and Lucia Vazquez, due August 2027.",
+            },
+        },
+    ],
+    pressTitle: { es: "en la prensa", en: "in the press" },
+    contactTitle: { es: "contacto y perfiles", en: "contact and profiles" },
+};
+
+export function aboutPath(lang) {
+    return `${localePrefix(lang)}/${about.segment[lang]}`;
 }
 
 // Projects listed under "01 trabajo". A project with `caseStudy` gets its own

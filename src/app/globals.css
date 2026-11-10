@@ -777,6 +777,16 @@ h1, h2, h3, p, figure, dl, dd { margin: 0; }
   .case-next a { margin: 0; font-size: clamp(32px, 5vw, 64px); }
 }
 
+/* about page */
+.about-lead { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 20px 32px; margin-top: 32px; }
+.about-lead img { width: 120px; height: 120px; object-fit: cover; }
+.about-lead p { flex: 1 1 280px; max-width: 820px; font-size: 22px; line-height: 1.28; letter-spacing: -0.02em; }
+@media (min-width: 640px) {
+  .about-lead { margin-top: 56px; }
+  .about-lead img { width: 200px; height: 200px; }
+  .about-lead p { font-size: 28px; line-height: 1.25; }
+}
+
 /* blog + error pages */
 .plain-title {
   margin-top: 12px;

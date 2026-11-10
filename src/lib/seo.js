@@ -4,7 +4,7 @@
 // root layout's whole `openGraph` object, image and site name included. Pages
 // build theirs with `openGraph()` so every page keeps the same base fields.
 
-import { profile, site, socialLinks } from "@/data/portfolio";
+import { about, aboutPath, news, profile, site, socialLinks } from "@/data/portfolio";
 import { homePath, locales, ogLocale, tx } from "@/data/i18n";
 
 export function ogImage(lang) {
@@ -55,8 +55,11 @@ export function personSchema(lang) {
         familyName: "Cabrera",
         // The full name the press uses, and the handle used across GitHub,
         // LinkedIn and this domain.
-        alternateName: ["Felipe Cabrera Bisio", "felicabrera"],
+        alternateName: [profile.fullName, profile.handle],
+        // Tells this Felipe Cabrera apart from others with the same name.
+        disambiguatingDescription: tx(about.disambiguation, lang),
         url: site.url,
+        mainEntityOfPage: `${site.url}${aboutPath(lang)}`,
         image: `${site.url}${profile.avatarUrl}`,
         jobTitle: tx(profile.role, lang),
         description: tx(profile.intro, lang),
@@ -74,7 +77,33 @@ export function personSchema(lang) {
             url: "https://www.ucu.edu.uy/",
         },
         knowsAbout: tx(profile.knowsAbout, lang),
+        knowsLanguage: ["es", "en"],
         award: tx(profile.awards, lang),
+        // Press coverage: third-party pages about the same person.
+        subjectOf: news.map((item) => ({
+            "@type": "NewsArticle",
+            headline: item.headline,
+            url: item.url,
+            datePublished: item.date,
+            inLanguage: item.lang,
+            publisher: { "@type": "Organization", name: item.source },
+        })),
+    };
+}
+
+export function aboutPageSchema(lang) {
+    const url = `${site.url}${aboutPath(lang)}`;
+    return {
+        "@type": "AboutPage",
+        "@id": `${url}#about`,
+        url,
+        name: tx(about.metaTitle, lang),
+        description: tx(about.metaDescription, lang),
+        inLanguage: lang,
+        mainEntity: { "@id": personId },
+        about: { "@id": personId },
+        isPartOf: { "@id": websiteId },
+        primaryImageOfPage: `${site.url}${profile.avatarUrl}`,
     };
 }
 
