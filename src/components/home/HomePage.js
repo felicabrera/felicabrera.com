@@ -10,23 +10,23 @@ import {
     Writing,
 } from "@/components/home/Sections";
 
-export default function Home() {
+export default function HomePage({ lang }) {
     return (
         <div className="shell">
             <div className="wrap">
-                <SiteHeader />
+                <SiteHeader lang={lang} />
                 <main>
-                    <Hero />
-                    <Intro />
-                    <Work />
-                    <Achievements />
+                    <Hero lang={lang} />
+                    <Intro lang={lang} />
+                    <Work lang={lang} />
+                    <Achievements lang={lang} />
                     <div className="press-blog">
-                        <Press />
-                        <Writing />
+                        <Press lang={lang} />
+                        <Writing lang={lang} />
                     </div>
-                    <Contact />
+                    <Contact lang={lang} />
                 </main>
-                <SiteFooter />
+                <SiteFooter lang={lang} />
             </div>
         </div>
     );

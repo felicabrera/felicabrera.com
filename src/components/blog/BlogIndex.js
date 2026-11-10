@@ -1,17 +1,15 @@
 import Link from "next/link";
 import InnerHeader from "@/components/InnerHeader";
 import { SiteFooter } from "@/components/home/Sections";
+import { otherLocale } from "@/data/i18n";
 import { profile } from "@/data/portfolio";
 import {
     blogBasePath,
     formatPostDate,
     getPosts,
-    localePrefix,
     postPath,
     t,
 } from "@/lib/blog";
-
-const otherLocale = (lang) => (lang === "es" ? "en" : "es");
 
 export default function BlogIndex({ lang }) {
     const posts = getPosts(lang);
@@ -21,7 +19,7 @@ export default function BlogIndex({ lang }) {
     return (
         <div className="shell">
             <div className="inner">
-                <InnerHeader localePrefix={localePrefix(lang)} />
+                <InnerHeader lang={lang} />
                 <main>
                     <div className="blog-topbar">
                         <span className="kicker">{tr.kicker}</span>
@@ -77,7 +75,7 @@ export default function BlogIndex({ lang }) {
                         </ul>
                     )}
                 </main>
-                <SiteFooter />
+                <SiteFooter lang={lang} />
             </div>
         </div>
     );

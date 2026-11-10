@@ -2,15 +2,13 @@ import Link from "next/link";
 import InnerHeader from "@/components/InnerHeader";
 import PostBody from "@/components/blog/PostBody";
 import { SiteFooter } from "@/components/home/Sections";
+import { homePath, otherLocale } from "@/data/i18n";
 import {
     blogBasePath,
     formatPostDate,
-    localePrefix,
     postPath,
     t,
 } from "@/lib/blog";
-
-const otherLocale = (lang) => (lang === "es" ? "en" : "es");
 
 export default function BlogArticle({ lang, post, translationSlug }) {
     const tr = t[lang];
@@ -23,7 +21,7 @@ export default function BlogArticle({ lang, post, translationSlug }) {
     return (
         <div className="shell">
             <div className="inner">
-                <InnerHeader localePrefix={localePrefix(lang)} />
+                <InnerHeader lang={lang} />
                 <main>
                     <article className="post" lang={lang}>
                         <div className="blog-topbar">
@@ -53,10 +51,10 @@ export default function BlogArticle({ lang, post, translationSlug }) {
 
                     <nav className="post-foot" aria-label={tr.allPosts}>
                         <Link href={blogBasePath(lang)}>← {tr.back}</Link>
-                        <Link href="/">{tr.backHome} ↗</Link>
+                        <Link href={homePath(lang)}>{tr.backHome} ↗</Link>
                     </nav>
                 </main>
-                <SiteFooter />
+                <SiteFooter lang={lang} />
             </div>
         </div>
     );
