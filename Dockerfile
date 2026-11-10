@@ -12,10 +12,12 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# `npm run build` also runs the postbuild sitemap generator. It shells out to
-# git for lastmod dates; git is absent here, the generator catches that and
-# falls back to file mtimes, so the build still succeeds.
-RUN npm run build
+# `npm run build` runs the postbuild sitemap generator as an npm lifecycle
+# hook. That hook is skipped when npm has ignore-scripts set, so the generator
+# is also invoked explicitly here to guarantee the sitemap is regenerated. It
+# shells out to git for lastmod dates; git is absent here, the generator
+# catches that and falls back to file mtimes, so the build still succeeds.
+RUN npm run build && node scripts/generate-sitemap.mjs
 
 FROM node:22-bookworm-slim AS runner
 WORKDIR /app

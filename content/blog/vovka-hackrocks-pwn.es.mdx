@@ -1,17 +1,17 @@
 ---
 title: "VOVKA: format string a ciegas, stack overflow y ROP"
-description: "writeup de VOVKA (HackRocks CTF): filtrar canario, PIE y libc con una format string, identificar la libc por build-id y leer la flag con una ROP data-only."
-date: "2026-10-20"
+description: "Writeup de VOVKA (OEA Cyber Challenge 2026, HackRocks): filtrar canario, PIE y libc con una format string, identificar la libc por build-id y leer la flag con una ROP data-only."
+date: "2026-10-16"
 lang: "es"
 translationKey: "vovka"
 tags: ["ciberseguridad", "ctf", "pwn", "format-string", "rop", "hackrocks"]
 author: "Felipe Cabrera"
-draft: true
+draft: false
 ---
 
-VOVKA es un reto de pwn de userland del HackRocks CTF que resolví con Stefano Francolino. Combina tres cosas clásicas en una sola conexión: una format string a ciegas, un stack overflow y una ROP para leer la flag. Este es el writeup completo.
+VOVKA fue uno de los seis retos del OEA Cyber Challenge 2026 (sobre HackRocks), que jugué con Stefano Francolino en el equipo Never be Frog. Es un pwn de userland que combina tres cosas clásicas en una sola conexión: una format string a ciegas, un stack overflow y una ROP para leer la flag. Este es el writeup completo.
 
-- **CTF:** HackRocks CTF
+- **CTF:** OEA Cyber Challenge 2026 (HackRocks)
 - **Categoría:** pwn (format string + stack overflow + ROP)
 - **Servicio:** `challenges2.hackrocks.com:1021`
 - **Credenciales:** `player` / `Bl1nd_Fmt_Str1ng_G0!`

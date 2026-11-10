@@ -1,17 +1,17 @@
 ---
 title: "IO_HO_FIRM 2.0: PageJack con un off-by-one NULL en el kernel"
-description: "writeup de IO_HO_FIRM 2.0 (HackRocks CTF): un off-by-one NULL en un driver convertido en page UAF con PageJack, data-only, hasta leer la flag con su root."
-date: "2026-10-21"
+description: "Writeup de IO_HO_FIRM 2.0 (OEA Cyber Challenge 2026, HackRocks): un off-by-one NULL en un driver convertido en page UAF con PageJack, data-only, hasta leer la flag con su root."
+date: "2026-10-17"
 lang: "es"
 translationKey: "ioho-firm"
 tags: ["ciberseguridad", "ctf", "pwn", "kernel", "pagejack", "hackrocks"]
 author: "Felipe Cabrera"
-draft: true
+draft: false
 ---
 
-IO_HO_FIRM 2.0 es un reto de kernel pwn del HackRocks CTF que resolví con Stefano Francolino. Un solo byte NUL fuera de rango en un driver termina en una lectura de la flag como root, sin tocar una sola dirección del kernel. La técnica es PageJack, totalmente data-only. Este es el writeup.
+IO_HO_FIRM 2.0 fue uno de los seis retos del OEA Cyber Challenge 2026 (sobre HackRocks), que jugué con Stefano Francolino en el equipo Never be Frog. Un solo byte NUL fuera de rango en un driver termina en una lectura de la flag como root, sin tocar una sola dirección del kernel. La técnica es PageJack, totalmente data-only. Este es el writeup.
 
-- **CTF:** HackRocks CTF
+- **CTF:** OEA Cyber Challenge 2026 (HackRocks)
 - **Categoría:** kernel exploitation / pwn
 - **Servicio:** `ch4ll3ng3s.hackrocks.com:6767`
 - **Entorno:** initramfs Linux 6.13.0 SMP preempt, usuario uid 1000 (sin privilegios)

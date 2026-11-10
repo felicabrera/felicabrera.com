@@ -6,16 +6,14 @@ lang: "en"
 translationKey: "oea-2026"
 tags: ["cybersecurity", "ctf", "pwn", "oea-cyber-challenge", "uruguay"]
 author: "Felipe Cabrera"
-draft: true
+draft: false
 ---
 
-With the team **Never be Frog** we took third place nationally in the OEA Cyber Challenge 2026. A short recap.
+With the team **Never be Frog** we took third place nationally in the OEA Cyber Challenge 2026, alongside Stefano Francolino. A short recap.
 
 ## What the OEA Cyber Challenge is
 
-It is a cybersecurity challenge organized by the Organization of American States (OAS) together with Agesic. It is free, virtual, and runs on the HackRocks platform. The 2026 edition, the second in Uruguay, ran on October 16 and 17, 2026, and was open to people aged 18 to 25 living in the country. The challenges cover reverse engineering, cryptography, web hacking and forensics. For reference, the first edition (2025) drew around 70 participants.
-
-**Never be Frog** is a team I built with Stefano Francolino.
+It is a cybersecurity challenge organized by the Organization of American States (OAS) together with Agesic. It is free, virtual, and runs on the HackRocks platform. The 2026 edition, the second in Uruguay, ran on October 16 and 17, 2026, drew 69 people aged 18 to 25, and featured six challenges based on real-world scenarios.
 
 ## What a CTF is (and why I like them)
 
@@ -27,8 +25,18 @@ My favorite category is pwn: take a program, find a memory bug (an overflow, a f
 
 CTFs are not just sport. They force you to understand how systems actually fail, not in theory: what a corrupted stack looks like, what a memory leak lets you do, why one mitigation stops an attack and another does not. That intuition is the same one you need to defend or audit real systems.
 
-If you want a concrete pwn writeup, I wrote one on [VOVKA](/blog/vovka-hackrocks-pwn), a HackRocks challenge with a format string, a stack overflow and ROP.
+## The result
+
+The top three teams tied at 545 points, so the order came down to solve time:
+
+- **First place: l1ghtn1ng** (Isabela Gómez).
+- **Second place: Datasec** (Erik Puglia, Tadeo Goday and Renzo Ramagli).
+- **Third place: Never be Frog** (Felipe Cabrera and Stefano Francolino).
+
+Of the six challenges, I wrote up two pwn ones: [VOVKA](/blog/vovka-hackrocks-pwn), with a format string, a stack overflow and ROP, and [IO_HO_FIRM 2.0](/blog/ioho-firm-pagejack), a NULL off-by-one in the kernel.
 
 ---
 
-Related: [VOVKA writeup](/blog/vovka-hackrocks-pwn) · [GitHub](https://github.com/felicabrera)
+Related: [VOVKA writeup](/blog/vovka-hackrocks-pwn) · [IO_HO_FIRM writeup](/blog/ioho-firm-pagejack) · [GitHub](https://github.com/felicabrera)
+
+Source: [Agesic (gub.uy)](https://www.gub.uy/agencia-gobierno-electronico-sociedad-informacion-conocimiento/comunicacion/noticias/69-personas-18-25-anos-participaron-segunda-edicion-oea-cyber-challenge)
