@@ -1,0 +1,39 @@
+---
+title: "Launching Clavoware: nothing expires on the shelf"
+description: "Clavoware is out in early access: a SaaS for supermarkets that tells managers every morning what is about to expire and what to do. Why we built it and how it works."
+date: "2026-11-17"
+lang: "en"
+translationKey: "clavoware-launch"
+project: "clavoware"
+tags: ["clavoware", "saas", "supermarkets", "go", "next.js"]
+author: "Felipe Cabrera"
+draft: true
+---
+
+Today [Clavoware](https://clavoware.com) is out in early access.
+
+## The problem
+
+In a supermarket, stock expires quietly on the shelf. Nobody checks dates product by product, and whatever is found too late ends up in the trash. It is not a problem of careless people: it is a problem of information arriving late.
+
+## How it works
+
+1. **When stock arrives**, staff scan the barcode with their phone camera and enter the expiry date in three taps. It works offline: scans are queued and sync when the connection returns.
+2. **Every day at 08:00**, the manager gets a summary: what expires within the next 7 days, what is critical within 3, and what to do with each item: discount, move or remove it.
+3. **Chains compare their stores** by waste, to see where the most is lost and why.
+
+No dedicated hardware needed: it runs on Android and iOS, in Spanish, Portuguese and English.
+
+## Under the hood
+
+- A **Go API** built with Fiber and PostgreSQL.
+- An offline-first **Next.js web app** with camera scanning (ZXing), an offline scan queue and push notifications.
+- Docker to deploy and Sentry to hear about errors before users do.
+
+## Early access
+
+We are opening Clavoware to supermarkets in Uruguay and the region. If you run or manage one and want to try it, head to [clavoware.com](https://clavoware.com).
+
+---
+
+Related: [Clavoware case study](/work/clavoware) · [clavoware.com](https://clavoware.com)

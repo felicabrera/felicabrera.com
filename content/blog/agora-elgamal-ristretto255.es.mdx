@@ -1,0 +1,65 @@
+---
+title: "Votos cifrados que se pueden sumar: ElGamal sobre ristretto255"
+description: "Cómo funciona el núcleo criptográfico de ÁGORA: ElGamal exponencial sobre ristretto255, pruebas de conocimiento cero de que un voto es válido y descifrado por umbral."
+date: "2026-11-12"
+lang: "es"
+translationKey: "agora-elgamal"
+project: "agora"
+tags: ["criptografía", "voto-electrónico", "elgamal", "zkp", "go"]
+author: "Felipe Cabrera"
+draft: true
+---
+
+En una elección hay dos cosas que parecen incompatibles: nadie tiene que poder ver mi voto, y cualquiera tiene que poder comprobar que el resultado es la suma de todos los votos. ÁGORA, nuestro Proyecto Final de Grado en la UCU, resuelve esa tensión con criptografía estándar. Este artículo recorre el núcleo, que ya es [código público](https://github.com/felicabrera/agora).
+
+## El grupo: ristretto255
+
+Todo vive en [ristretto255](https://ristretto.group/) (RFC 9496), construido sobre Curve25519. Lo elegimos por una propiedad concreta: es un grupo de **orden primo**, sin cofactor ni subgrupos pequeños. ElGamal y las pruebas tipo Schnorr asumen exactamente eso, así que no hay que andar validando puntos raros a mano. Está detrás de una interfaz para poder sumar otro backend más adelante.
+
+## ElGamal exponencial: sumar sin descifrar
+
+La autoridad tiene una clave privada `x` y publica `Y = xG`. Para cifrar un voto `m` (0 o 1) se elige una aleatoriedad fresca `r`:
+
+```
+A = rG
+B = rY + mG
+```
+
+La gracia es que el cifrado es **homomórfico**: si sumo dos ciphertexts componente a componente, `(A₁+A₂, B₁+B₂)`, obtengo el cifrado de `m₁+m₂`. Así que los votos se suman cifrados, uno por uno, y al final solo se descifra el total. Ningún voto individual se abre nunca.
+
+Para descifrar se calcula `mG = B − xA` y se recupera `m` resolviendo un logaritmo discreto acotado: como el total está entre 0 y la cantidad de votantes, baby-step giant-step lo encuentra en `O(√N)`.
+
+Como `r` es fresca en cada voto, dos votos iguales producen ciphertexts distintos (seguridad semántica, IND-CPA). Eso es lo que nos permite publicar todos los votos cifrados en [FARO](https://github.com/felicabrera/faro), el log público.
+
+## Probar que un voto es válido sin mostrarlo
+
+El cifrado homomórfico tiene un problema: si alguien cifra un 5 en lugar de un 1, la suma lo acepta sin quejarse. Por eso cada voto viaja con **pruebas de conocimiento cero**:
+
+- **Prueba `{0,1}` por casilla.** Una OR-proof en el estilo de Cramer-Damgård-Schoenmakers: compone dos sigma-protocolos Chaum-Pedersen y demuestra que el ciphertext cifra 0 **o** 1, sin revelar cuál.
+- **Prueba 1-de-C por papeleta.** Que cada casilla sea 0 o 1 no alcanza: alguien podría marcar dos candidatos. Se suma la papeleta entera, `(ΣAᵢ, ΣBᵢ)`, y una prueba Chaum-Pedersen demuestra que ese agregado cifra exactamente un 1. Una papeleta que vota a dos candidatos se rechaza.
+
+Las pruebas se hacen no interactivas con **Fiat-Shamir**: el desafío sale de un hash. Y acá hay un detalle que importa: el hash incluye un separador de dominio, la clave pública y el ciphertext completo. Si se omite cualquiera de esos, la prueba deja de ser sólida. Es el tipo de error que no rompe ningún test funcional y sí rompe la seguridad.
+
+## Nadie tiene la llave completa
+
+Si una sola persona tuviera `x`, podría descifrar votos individuales. Con **Shamir secret sharing** la clave se reparte entre varias autoridades: es un polinomio de grado `t−1` con `x = f(0)`, y cada autoridad recibe un punto `(i, f(i))`.
+
+Para descifrar el total, cada autoridad publica `Dᵢ = xᵢ·A`, y la interpolación de Lagrange en 0 combina esos aportes en `x·A` sin que nadie reconstruya `x`. Con `t` autoridades se descifra; con `t−1`, no. Por ejemplo, 3 de 5:
+
+```console
+$ ./bin/agorakit keygen --authorities 5 --threshold 3
+```
+
+## Lo que todavía no está
+
+Prefiero decirlo de frente:
+
+- **Es una implementación de referencia, no de producción.** No tiene auditoría externa ni está endurecida contra canales laterales (timing, caché).
+- **El reparto usa un dealer confiable.** Quien genera las shares conoce `x` durante la ceremonia. La mejora prevista es la generación distribuida de Pedersen ('91), sin dealer.
+- **Falta la capa de protocolo:** padrón, tokens de un solo uso, API de emisión y escrutinio.
+
+Nada de esto es criptografía inventada: es ElGamal (1985), Cramer-Gennaro-Schoenmakers (EUROCRYPT '97), CDS (CRYPTO '94), Chaum-Pedersen (CRYPTO '92), Fiat-Shamir (CRYPTO '86) y Shamir (1979). Lo nuevo es juntarlo bien y poder demostrar que cuesta poco, que es lo que mide [ÁBACO](https://github.com/felicabrera/abaco).
+
+---
+
+Relacionado: [ÁGORA en GitHub](https://github.com/felicabrera/agora) · [FARO en GitHub](https://github.com/felicabrera/faro) · [ÁBACO en GitHub](https://github.com/felicabrera/abaco)

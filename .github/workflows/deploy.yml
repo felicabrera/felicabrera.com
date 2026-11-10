@@ -1,0 +1,105 @@
+name: Deploy
+
+# Ships felicabrera.com (Next.js standalone, in Docker) to the apps host on a
+# push to main. The site is served to the public through Cloudflare, which
+# forwards to nginx on the edge host (eugene-waf); nginx proxies to the
+# felicabrera-web container on the LAN at 10.10.10.20:21200.
+#
+# The job runs on a self-hosted runner on the apps host (label "felicabrera",
+# user felicabrera-deploy, repo-scoped), so `docker compose` runs locally
+# against /opt/pfg/felicabrera/prod/release. nginx lives on the separate edge
+# host: the vhost is staged there over SSH as felicabrera-deploy, whose sudo is
+# pinned to /usr/local/sbin/felicabrera-sync-nginx. The deploy key and the edge
+# host key are repo secrets.
+#
+# Secrets are only ever read into env: at the step that needs them, never
+# interpolated into a run: script, so a secret value cannot be reinterpreted as
+# shell syntax.
+#
+# It also runs on a schedule: projects with a future `publishAt` in
+# src/data/portfolio.js are left out of the build until that day, so a fresh
+# build has to happen on the day to publish them. 03:00 UTC is midnight in
+# Montevideo. Clavoware: 17 November.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 3 17 11 *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  EDGE_HOST: 10.10.10.2
+  DOMAIN: felicabrera.com
+  RELEASE_DIR: /opt/pfg/felicabrera/prod/release
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, felicabrera]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Sync source to the release directory
+        run: |
+          rsync -a --delete \
+            --exclude '.git' --exclude 'node_modules' --exclude '.next' --exclude 'out' \
+            --exclude 'content/blog/_sources.md' \
+            ./ "$RELEASE_DIR/"
+
+      - name: Build and start the container
+        run: |
+          export BUILD_DATE="$(date -u +%F)"
+          docker compose -f "$RELEASE_DIR/docker-compose.yml" --project-directory "$RELEASE_DIR" \
+            -p felicabrera up -d --build --remove-orphans
+          docker image prune -f
+
+      - name: Install the nginx vhost
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_SSH_HOST_KEY: ${{ secrets.DEPLOY_SSH_HOST_KEY }}
+        run: |
+          key="$RUNNER_TEMP/edge_key"
+          known="$RUNNER_TEMP/edge_known_hosts"
+          trap 'rm -f "$key" "$known"' EXIT
+          (umask 077 && printf '%s\n' "$DEPLOY_SSH_KEY" > "$key")
+          printf '%s\n' "$DEPLOY_SSH_HOST_KEY" > "$known"
+          ssh_opts=(-i "$key" -o UserKnownHostsFile="$known" -o BatchMode=yes -o IdentitiesOnly=yes)
+          scp "${ssh_opts[@]}" "deploy/nginx/$DOMAIN.conf" "felicabrera-deploy@$EDGE_HOST:$DOMAIN.conf.new"
+          ssh "${ssh_opts[@]}" "felicabrera-deploy@$EDGE_HOST" \
+            "sudo -n /usr/local/sbin/felicabrera-sync-nginx $DOMAIN; status=\$?; rm -f $DOMAIN.conf.new; exit \$status"
+
+      - name: Verify the site responds
+        run: |
+          for i in $(seq 1 15); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://10.10.10.20:21200/ || true)
+            if [ "$code" = "200" ]; then echo "container healthy ($code)"; exit 0; fi
+            sleep 2
+          done
+          echo "::error::container did not return 200 after the deploy."
+          exit 1
+
+      # IndexNow tells Bing, Yandex and the engines that share their index
+      # (DuckDuckGo among them) which URLs changed, so they recrawl without
+      # waiting. The key is public by design: it is served at /<key>.txt.
+      # Google does not take part. A failure here never fails the deploy.
+      # The sitemap is read from the container: the runner cannot fetch the
+      # public domain through Cloudflare.
+      - name: Notify search engines (IndexNow)
+        continue-on-error: true
+        env:
+          INDEXNOW_KEY: e5e1f68caee01788f80f5562e3edf86a
+        run: |
+          urls=$(curl -fsS http://10.10.10.20:21200/sitemap.xml | grep -o '<loc>[^<]*</loc>' | sed 's/<loc>\(.*\)<\/loc>/"\1"/' | paste -sd, -)
+          [ -n "$urls" ] || { echo "no URLs in the sitemap"; exit 1; }
+          curl -fsS -o /dev/null -w 'indexnow: %{http_code}\n' -X POST "https://api.indexnow.org/indexnow" \
+            -H 'Content-Type: application/json; charset=utf-8' \
+            -d "{\"host\":\"$DOMAIN\",\"key\":\"$INDEXNOW_KEY\",\"keyLocation\":\"https://$DOMAIN/$INDEXNOW_KEY.txt\",\"urlList\":[$urls]}"

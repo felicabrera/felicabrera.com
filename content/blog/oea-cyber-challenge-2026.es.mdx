@@ -1,0 +1,42 @@
+---
+title: "OEA Cyber Challenge 2026: tercer puesto con Never be Frog"
+description: "Qué es el OEA Cyber Challenge, qué son los CTF y por qué importan, y cómo salimos terceros a nivel nacional con el equipo Never be Frog."
+date: "2026-10-21"
+lang: "es"
+translationKey: "oea-2026"
+tags: ["ciberseguridad", "ctf", "pwn", "oea-cyber-challenge", "uruguay"]
+author: "Felipe Cabrera"
+draft: false
+---
+
+Con el equipo **Never be Frog** salimos terceros a nivel nacional en el OEA Cyber Challenge 2026, junto a Stefano Francolino. Un resumen breve.
+
+## Qué es el OEA Cyber Challenge
+
+Es un desafío de ciberseguridad organizado por la Organización de los Estados Americanos (OEA) junto con Agesic. Es gratuito, virtual y corre sobre la plataforma HackRocks. La edición 2026, la segunda en Uruguay, se disputó el 16 y 17 de octubre de 2026, reunió a 69 personas de entre 18 y 25 años y propuso seis retos inspirados en escenarios reales.
+
+## Qué es un CTF (y por qué me gustan)
+
+CTF es "capture the flag": competencias donde se resuelven retos de seguridad y, por cada uno, se encuentra una "flag", una cadena secreta que prueba que lo resolviste. Los retos suelen agruparse en categorías: web, criptografía, forense, reversing y **pwn** (explotación de binarios), entre otras.
+
+Mi categoría favorita es pwn: tomar un programa, encontrar una falla de memoria (un overflow, un format string, un use-after-free) y encadenarla hasta tomar control de la ejecución. Es la parte de la seguridad que más se parece a resolver un rompecabezas con reglas muy estrictas.
+
+## Por qué importan
+
+Los CTF no son solo deporte. Te obligan a entender cómo fallan los sistemas de verdad, no en la teoría: cómo se ve un stack corrupto, qué habilita una fuga de memoria, por qué una mitigación frena un ataque y otra no. Esa intuición es la misma que se necesita para defender o auditar sistemas reales.
+
+## El resultado
+
+Los tres primeros equipos empatamos en 545 puntos, así que el orden lo definió el tiempo de resolución:
+
+- **Primer lugar: l1ghtn1ng** (Isabela Gómez).
+- **Segundo lugar: Datasec** (Erik Puglia, Tadeo Goday y Renzo Ramagli).
+- **Tercer lugar: Never be Frog** (Felipe Cabrera y Stefano Francolino).
+
+De los seis retos, escribí el writeup de dos de pwn: [VOVKA](/blog/vovka-hackrocks-pwn), con format string, stack overflow y ROP, y [IO_HO_FIRM 2.0](/blog/ioho-firm-pagejack), un off-by-one NULL en el kernel.
+
+---
+
+Relacionado: [writeup de VOVKA](/blog/vovka-hackrocks-pwn) · [writeup de IO_HO_FIRM](/blog/ioho-firm-pagejack) · [GitHub](https://github.com/felicabrera)
+
+Fuente: [Agesic (gub.uy)](https://www.gub.uy/agencia-gobierno-electronico-sociedad-informacion-conocimiento/comunicacion/noticias/69-personas-18-25-anos-participaron-segunda-edicion-oea-cyber-challenge)

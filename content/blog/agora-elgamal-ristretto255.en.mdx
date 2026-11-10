@@ -1,0 +1,65 @@
+---
+title: "Encrypted ballots you can add up: ElGamal over ristretto255"
+description: "How ÁGORA's cryptographic core works: exponential ElGamal over ristretto255, zero-knowledge proofs that a ballot is valid, and threshold decryption."
+date: "2026-11-12"
+lang: "en"
+translationKey: "agora-elgamal"
+project: "agora"
+tags: ["cryptography", "e-voting", "elgamal", "zkp", "go"]
+author: "Felipe Cabrera"
+draft: true
+---
+
+An election asks for two things that look incompatible: nobody should be able to see my ballot, and anyone should be able to check that the result is the sum of all ballots. ÁGORA, our capstone thesis at UCU, resolves that tension with standard cryptography. This post walks through the core, which is already [public code](https://github.com/felicabrera/agora).
+
+## The group: ristretto255
+
+Everything lives in [ristretto255](https://ristretto.group/) (RFC 9496), built on Curve25519. We picked it for one specific property: it is a **prime-order** group, with no cofactor and no small subgroups. ElGamal and Schnorr-style proofs assume exactly that, so there is no need to validate odd points by hand. It sits behind an interface so another backend can be added later.
+
+## Exponential ElGamal: adding without decrypting
+
+The authority holds a private key `x` and publishes `Y = xG`. To encrypt a vote `m` (0 or 1), pick fresh randomness `r`:
+
+```
+A = rG
+B = rY + mG
+```
+
+The trick is that the encryption is **homomorphic**: adding two ciphertexts component by component, `(A₁+A₂, B₁+B₂)`, gives an encryption of `m₁+m₂`. So ballots are added up while encrypted, one by one, and only the total is decrypted at the end. No individual ballot is ever opened.
+
+Decryption computes `mG = B − xA` and recovers `m` by solving a bounded discrete log: the total lies between 0 and the number of voters, so baby-step giant-step finds it in `O(√N)`.
+
+Because `r` is fresh for every ballot, two identical votes produce different ciphertexts (semantic security, IND-CPA). That is what lets us publish every encrypted ballot on [FARO](https://github.com/felicabrera/faro), the public log.
+
+## Proving a ballot is valid without showing it
+
+Homomorphic encryption has a catch: if someone encrypts a 5 instead of a 1, the sum takes it without complaint. So every ballot carries **zero-knowledge proofs**:
+
+- **A `{0,1}` proof per option.** A Cramer-Damgård-Schoenmakers-style OR-proof: it composes two Chaum-Pedersen sigma protocols and shows the ciphertext encrypts 0 **or** 1, without revealing which.
+- **A 1-of-C proof per ballot.** Each option being 0 or 1 is not enough: someone could mark two candidates. The whole ballot is summed, `(ΣAᵢ, ΣBᵢ)`, and a Chaum-Pedersen proof shows that aggregate encrypts exactly one 1. A ballot that votes for two candidates is rejected.
+
+The proofs are made non-interactive with **Fiat-Shamir**: the challenge comes from a hash. And there is a detail that matters here: the hash includes a domain separator, the public key and the full ciphertext. Leave any of them out and the proof is no longer sound. It is the kind of bug that breaks no functional test and does break the security.
+
+## Nobody holds the whole key
+
+If one person held `x`, they could decrypt individual ballots. With **Shamir secret sharing** the key is split among several authorities: it is a polynomial of degree `t−1` with `x = f(0)`, and each authority gets a point `(i, f(i))`.
+
+To decrypt the total, each authority publishes `Dᵢ = xᵢ·A`, and Lagrange interpolation at 0 combines them into `x·A` without anyone rebuilding `x`. With `t` authorities it decrypts; with `t−1`, it does not. For example, 3 of 5:
+
+```console
+$ ./bin/agorakit keygen --authorities 5 --threshold 3
+```
+
+## What is not there yet
+
+Better to say it upfront:
+
+- **It is a reference implementation, not a production one.** It has no external audit and is not hardened against side channels (timing, cache).
+- **The key split uses a trusted dealer.** Whoever generates the shares knows `x` during the ceremony. The planned improvement is Pedersen's ('91) distributed key generation, with no dealer.
+- **The protocol layer is missing:** voter roll, one-time tokens, the ballot-casting API and the tally.
+
+None of this is invented cryptography: it is ElGamal (1985), Cramer-Gennaro-Schoenmakers (EUROCRYPT '97), CDS (CRYPTO '94), Chaum-Pedersen (CRYPTO '92), Fiat-Shamir (CRYPTO '86) and Shamir (1979). The new part is putting it together carefully and being able to show it is cheap, which is what [ÁBACO](https://github.com/felicabrera/abaco) measures.
+
+---
+
+Related: [ÁGORA on GitHub](https://github.com/felicabrera/agora) · [FARO on GitHub](https://github.com/felicabrera/faro) · [ÁBACO on GitHub](https://github.com/felicabrera/abaco)

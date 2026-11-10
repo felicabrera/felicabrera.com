@@ -1,0 +1,26 @@
+# felicabrera.com production stack on eugene-apps.
+# The web container listens on 3000 inside the container and is published only
+# on the LAN address 10.10.10.20:21200, where the WAF (eugene-waf, 10.10.10.2)
+# reaches it. The deploy workflow runs `docker compose up -d --build` on the
+# self-hosted runner on this host.
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        BUILD_DATE: ${BUILD_DATE:-}
+    image: felicabrera-web:latest
+    container_name: felicabrera-web
+    restart: unless-stopped
+    ports:
+      - "10.10.10.20:21200:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
