@@ -1,5 +1,7 @@
 import Link from "next/link";
 import {
+    about,
+    aboutPath,
     achievements,
     blog,
     blogPath,
@@ -29,7 +31,12 @@ export function Intro({ lang }) {
     return (
         <section className="intro" aria-label={tr.index}>
             <p className="kicker">{tr.index}</p>
-            <p className="lead">{tx(profile.intro, lang)}</p>
+            <p className="lead">
+                {tx(profile.intro, lang)}{" "}
+                <Link className="u" href={aboutPath(lang)}>
+                    {tx(about.label, lang)} →
+                </Link>
+            </p>
         </section>
     );
 }
@@ -164,6 +171,7 @@ export function SiteFooter({ lang }) {
             <span>
                 {ui[lang].madeIn} {profile.location.toLowerCase()}
             </span>
+            <Link href={aboutPath(lang)}>{tx(about.label, lang)}</Link>
             {profile.pgpFingerprint && <span>pgp: {profile.pgpFingerprint}</span>}
         </footer>
     );

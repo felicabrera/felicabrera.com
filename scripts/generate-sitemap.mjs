@@ -13,6 +13,7 @@ import { fileURLToPath } from 'url';
 import { execFileSync } from 'child_process';
 import matter from 'gray-matter';
 import {
+    aboutPath,
     achievements,
     blogPath,
     buildDate,
@@ -48,15 +49,17 @@ function gitDate(...files) {
     }
 }
 
-// A page pair: { es, en } paths plus an optional lastmod.
-function pair(es, en, lastmod) {
-    return { alternates: { es, en }, lastmod };
+// A page pair: { es, en } paths plus an optional lastmod. `image` is a
+// site-relative image shown on the page, listed for image search.
+function pair(es, en, lastmod, image) {
+    return { alternates: { es, en }, lastmod, image };
 }
 
 function pagePairs() {
     const data = 'src/data/portfolio.js';
     const pairs = [
-        pair('/', '/en', gitDate(data, 'src/components/home')),
+        pair('/', '/en', gitDate(data, 'src/components/home'), profile.avatarUrl),
+        pair(aboutPath('es'), aboutPath('en'), gitDate(data, 'src/components/AboutPage.js'), profile.avatarUrl),
         pair('/blog', '/en/blog', gitDate('content/blog', 'src/components/blog')),
     ];
     for (const p of projectsWithCase()) {
@@ -96,7 +99,7 @@ function postPairs() {
     return [...byKey.values()];
 }
 
-function urlEntries({ alternates, lastmod }) {
+function urlEntries({ alternates, lastmod, image }) {
     const langs = ['es', 'en'].filter((l) => alternates[l]);
     const links =
         langs.length > 1
@@ -111,6 +114,7 @@ function urlEntries({ alternates, lastmod }) {
             `    <loc>${SITE_URL}${alternates[l]}</loc>`,
             ...(lastmod ? [`    <lastmod>${lastmod}</lastmod>`] : []),
             ...links,
+            ...(image ? [`    <image:image><image:loc>${SITE_URL}${image}</image:loc></image:image>`] : []),
             '  </url>',
         ].join('\n'),
     );
@@ -126,7 +130,8 @@ function buildLlms(posts) {
         `> ${tx(site.description, en)}`,
         '',
         '## About',
-        `Personal site of ${profile.name}, based in ${profile.city}, ${profile.location}. ${tx(profile.intro, en)}`,
+        `Personal site of ${profile.name} (${profile.fullName}), based in ${profile.city}, ${profile.location}. ${tx(profile.intro, en)}`,
+        `Full profile: ${url(aboutPath(en))} (Spanish ${url(aboutPath('es'))}).`,
         '',
         '## Languages',
         `The site is bilingual. Spanish is the default (${url('/')}); English lives at ${url(homePath('en'))}, case studies at /work/<slug> (Spanish /trabajo/<slug>) and the blog at ${url(blogPath('en'))} (Spanish ${url(blogPath('es'))}). Press coverage is in Spanish.`,
@@ -171,7 +176,7 @@ function main() {
     const urls = entries.flatMap(urlEntries);
     const xml =
         '<?xml version="1.0" encoding="UTF-8"?>\n' +
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' +
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n' +
         urls.join('\n') +
         '\n</urlset>\n';
     if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR);
