@@ -1,0 +1,34 @@
+---
+title: "OEA Cyber Challenge 2026: third place with Never be Frog"
+description: "What the OEA Cyber Challenge is, what CTFs are and why they matter, and how we took third place nationally with the team Never be Frog."
+date: "2026-10-18"
+lang: "en"
+translationKey: "oea-2026"
+tags: ["cybersecurity", "ctf", "pwn", "oea-cyber-challenge", "uruguay"]
+author: "Felipe Cabrera"
+draft: true
+---
+
+With the team **Never be Frog** we took third place nationally in the OEA Cyber Challenge 2026. A short recap.
+
+## What the OEA Cyber Challenge is
+
+It is a cybersecurity challenge organized by the Organization of American States (OAS) together with Agesic. It is free, virtual, and runs on the HackRocks platform. The 2026 edition, the second in Uruguay, ran on October 16 and 17, 2026, and was open to people aged 18 to 25 living in the country. The challenges cover reverse engineering, cryptography, web hacking and forensics. For reference, the first edition (2025) drew around 70 participants.
+
+**Never be Frog** is a team I built with Stefano Francolino.
+
+## What a CTF is (and why I like them)
+
+CTF stands for "capture the flag": competitions where you solve security challenges and, for each one, find a "flag", a secret string that proves you solved it. Challenges are usually grouped into categories: web, cryptography, forensics, reversing and **pwn** (binary exploitation), among others.
+
+My favorite category is pwn: take a program, find a memory bug (an overflow, a format string, a use-after-free) and chain it until you take control of execution. It is the part of security that feels most like solving a puzzle with very strict rules.
+
+## Why they matter
+
+CTFs are not just sport. They force you to understand how systems actually fail, not in theory: what a corrupted stack looks like, what a memory leak lets you do, why one mitigation stops an attack and another does not. That intuition is the same one you need to defend or audit real systems.
+
+If you want a concrete pwn writeup, I wrote one on [VOVKA](/blog/vovka-hackrocks-pwn), a HackRocks challenge with a format string, a stack overflow and ROP.
+
+---
+
+Related: [VOVKA writeup](/blog/vovka-hackrocks-pwn) · [GitHub](https://github.com/felicabrera)

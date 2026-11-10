@@ -1,0 +1,11 @@
+.git
+.github
+node_modules
+.next
+out
+Claude outputs
+.playwright-mcp
+content/blog/_sources.md
+npm-debug.log*
+.DS_Store
+README.md

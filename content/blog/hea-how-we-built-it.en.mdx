@@ -1,0 +1,54 @@
+---
+title: "HEA: how I built a habitable exoplanet analyzer"
+description: "How I built HEA, an AI that detects exoplanets from transit light curves and scores their habitability, using XGBoost, SHAP, FastAPI and Streamlit."
+date: "2025-10-15"
+lang: "en"
+translationKey: "hea-build"
+tags: ["ai", "machine-learning", "exoplanets", "nasa-space-apps", "python", "xgboost"]
+author: "Felipe Cabrera"
+draft: true
+---
+
+I built HEA (Habitable Exoplanet Analyzer) for the NASA Space Apps Challenge 2025, where I competed on my own. The idea was easy to state and hard to do well: given an exoplanet candidate, say how likely it is to be a real planet, and if it is, how Earth-like it might be. And the answer could not be a black box.
+
+## The problem: finding planets in a light curve
+
+We do not see exoplanets directly. The most productive way to find them is the transit method: when a planet passes in front of its star, it blocks a little of the light and the star's brightness dips. If you measure that brightness over time you get a light curve, and a transit shows up as a periodic dip with a characteristic shape.
+
+The catch is that not every dip is a planet. Eclipsing binaries, instrument noise, starspots and plenty of false positives look a lot like a real transit. Missions like Kepler and TESS produced so many candidates that checking them by hand does not scale. That is where machine learning comes in.
+
+## The approach: classify, then explain
+
+HEA takes NASA open data on candidates and trains a model to separate confirmed planets from false positives.
+
+- The main model is gradient boosting with **XGBoost**, with **scikit-learn** handling the pipeline (preprocessing, validation, metrics).
+- The accuracy I got was around **94%** in validation.
+- On top of the classification I added a habitability layer that compares the candidate against Earth to estimate whether it could sit in a habitable zone.
+
+What mattered most to me was that it not be a black box. So I added **explainability with SHAP**: for each prediction, HEA shows which features pushed the result toward "planet" or "false positive" and how much each one weighed. A student or a researcher sees not just the final probability but why.
+
+## The architecture
+
+I kept the stack deliberately simple and reproducible:
+
+| Layer | Tool |
+|---|---|
+| Modeling | XGBoost, scikit-learn |
+| Explainability | SHAP |
+| API | FastAPI |
+| Interface | Streamlit |
+| Language | Python |
+
+**FastAPI** serves the model: a candidate goes in, a probability plus its explanation comes out. **Streamlit** is the front end, where you load data and see the prediction, the factors behind it and the habitability analysis without touching a line of code.
+
+## What I took away
+
+HEA placed first nationally in Uruguay at the NASA Space Apps Challenge 2025. Beyond the result, the technical lesson was clear: in a domain like this, explaining the prediction matters as much as getting it right. A model that says "94%" without saying why is useless to whoever has to decide if it is worth pointing a telescope.
+
+The code is open, so if you want to read through it, go ahead.
+
+---
+
+Related: [HEA case study](/trabajo/hea) · [GitHub repo](https://github.com/felicabrera/hea)
+
+In the press: [Montevideo Portal](https://www.montevideo.com.uy/Ciencia-y-Tecnologia/Joven-uruguayo-diseno-una-IA-para-evaluar-exoplanetas-y-va-por-premio-de-la-NASA-uc939532) · [San Jose Ahora](https://sanjoseahora.com.uy/2025/10/13/joven-maragato-disenao-ia-para-analizar-exoplanetas-y-compite-por-premio-global-de-nasa/) · [UCU](https://www.ucu.edu.uy/Institucionales/Estudiantes-de-UCU-ganaron-desafio-nacional-de-competencia-de-la-NASA-uc3468)

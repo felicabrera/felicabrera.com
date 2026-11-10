@@ -1,0 +1,47 @@
+name: CI
+
+# Lints and builds the site on every PR and on pushes to main, on a hosted
+# runner, so a broken build never reaches the deploy runner. The production
+# build also runs the sitemap generator (postbuild), which exercises the blog
+# content pipeline. Third-party actions are pinned by commit SHA with the
+# readable tag kept as a comment.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      # eslint is currently non-blocking: package.json pins eslint ^10, but the
+      # plugins eslint-config-next 16.3.0 pulls in only support up to eslint 9,
+      # so `next lint` crashes on a clean install. The build is the real gate.
+      # Drop continue-on-error once the eslint toolchain is aligned.
+      - name: Lint
+        continue-on-error: true
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: npm audit (production dependencies)
+        continue-on-error: true
+        run: npm audit --audit-level=high --omit=dev
