@@ -1,0 +1,68 @@
+---
+title: "FARO: un registro auditable sin blockchain"
+description: "Cómo FARO, el log público de ÁGORA, prueba que un voto quedó registrado y que el registro nunca se reescribió, con Tessera, C2SP tlog-tiles y pruebas de Merkle."
+date: "2026-11-13"
+lang: "es"
+translationKey: "faro-log"
+project: "agora"
+tags: ["criptografía", "voto-electrónico", "transparency-log", "merkle", "go"]
+author: "Felipe Cabrera"
+draft: true
+---
+
+Cada vez que hablo de voto verificable alguien pregunta: "¿y eso va en una blockchain?". No. FARO, el registro público de [ÁGORA](https://github.com/felicabrera/agora), responde una sola pregunta, y la responde de forma que no haga falta creernos:
+
+**¿Este voto cifrado está en el registro, y el registro fue alterado?**
+
+Para eso no hace falta consenso distribuido ni un token. Hace falta un árbol de Merkle append-only, la misma idea que sostiene a Certificate Transparency, el sistema que audita los certificados HTTPS de toda la web.
+
+## Dos pruebas, dos preguntas
+
+- **Prueba de inclusión.** Demuestra que una entrada está en un árbol con raíz `R`, usando unos log₂(n) hashes. Es lo que le permite a un votante decir "mi voto quedó registrado".
+- **Prueba de consistencia.** Demuestra que un árbol anterior es prefijo de uno posterior: nada se reordenó, editó ni borró. Es lo que le permite a un auditor decir "el log no fue manipulado".
+
+El costo de auditar crece con `log n`, no con `n`. Medido con [ÁBACO](https://github.com/felicabrera/abaco): cuando el log pasa de mil a un millón de entradas (1.000× más), la prueba de inclusión pasa de 10 a 20 hashes, de 320 a 640 bytes, y verificarla sigue tomando un par de microsegundos. Cualquiera puede auditar desde una laptop.
+
+## FARO no sabe qué es un voto
+
+FARO guarda bytes opacos y prueba que no los alteró. Que esos bytes sean un voto válido lo decide ÁGORA, con sus pruebas de conocimiento cero. La frontera es deliberada: FARO puede auditarse por separado, sin entender nada de elecciones.
+
+## Por qué Tessera y no un Merkle propio
+
+FARO no implementa su árbol. Usa [Tessera](https://github.com/transparency-dev/tessera), la biblioteca de transparency-dev que también sostiene logs de Certificate Transparency en producción, y sirve el resultado con la API [C2SP tlog-tiles](https://c2sp.org/tlog-tiles).
+
+Escribir el árbol nosotros sería pedirle a un auditor que confíe en una implementación a medida justo del componente del que depende todo lo demás. Con la misma biblioteca y el mismo formato que CT, un auditor puede apuntar verificadores que ya existen, escritos por terceros, contra FARO.
+
+## Archivos estáticos
+
+La API de lectura son **archivos estáticos**: cada byte que un auditor necesita está en disco, en un formato documentado y estándar. El log se puede espejar, archivar o servir desde cualquier servidor web sin ejecutar nuestro binario. Un log que solo se puede leer a través de su propia API es un log en el que hay que confiar; este no.
+
+Probarlo es corto:
+
+```console
+$ ./bin/faro-verify keygen --name faro.local/dev
+$ export FARO_SIGNING_KEY='PRIVATE+KEY+faro.local/dev+...'
+$ ./bin/faro-log
+$ curl -X POST --data-binary 'hola' localhost:2025/add
+0
+$ curl localhost:2025/checkpoint
+faro.local/dev
+1
+7wRDNzWQ3aSAKuUCUQ0MDbFOhFPYxLp5nJUXHTEy0Cg=
+```
+
+El checkpoint es el origen del log, su tamaño y su raíz, firmados.
+
+## Una decisión chica: sin clave, no arranca
+
+La clave de firma no tiene valor por defecto y FARO no genera una si no la encuentra. Un log que inventara una clave arrancaría sano y produciría checkpoints que nadie puede verificar contra la clave publicada. Eso es peor que no arrancar.
+
+## Límites conocidos
+
+- **El camino de escritura todavía no está autenticado.** Llega con la integración con ÁGORA.
+- **No hay testigos independientes todavía.** El protocolo [C2SP tlog-witness](https://c2sp.org/tlog-witness) convierte la auditoría entre varias partes en una propiedad del protocolo y no en un acuerdo institucional. Está previsto.
+- **El explorador web todavía no verifica.** Muestra el checkpoint tal como lo devuelve el servidor, y lo dice en la página. La verificación en el navegador es el próximo paso, junto con los subcomandos `inclusion`, `consistency` y `monitor` de la CLI.
+
+---
+
+Relacionado: [FARO en GitHub](https://github.com/felicabrera/faro) · [RFC 6962](https://www.rfc-editor.org/rfc/rfc6962) · [C2SP tlog-tiles](https://c2sp.org/tlog-tiles)
