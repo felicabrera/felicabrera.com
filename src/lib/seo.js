@@ -53,8 +53,9 @@ export function personSchema(lang) {
         name: profile.name,
         givenName: "Felipe",
         familyName: "Cabrera",
-        // The handle used across GitHub, LinkedIn and this domain.
-        alternateName: "felicabrera",
+        // The full name the press uses, and the handle used across GitHub,
+        // LinkedIn and this domain.
+        alternateName: ["Felipe Cabrera Bisio", "felicabrera"],
         url: site.url,
         image: `${site.url}${profile.avatarUrl}`,
         jobTitle: tx(profile.role, lang),
