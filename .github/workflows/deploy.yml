@@ -91,12 +91,14 @@ jobs:
       # (DuckDuckGo among them) which URLs changed, so they recrawl without
       # waiting. The key is public by design: it is served at /<key>.txt.
       # Google does not take part. A failure here never fails the deploy.
+      # The sitemap is read from the container: the runner cannot fetch the
+      # public domain through Cloudflare.
       - name: Notify search engines (IndexNow)
         continue-on-error: true
         env:
           INDEXNOW_KEY: e5e1f68caee01788f80f5562e3edf86a
         run: |
-          urls=$(curl -fsS "https://$DOMAIN/sitemap.xml" | grep -o '<loc>[^<]*</loc>' | sed 's/<loc>\(.*\)<\/loc>/"\1"/' | paste -sd, -)
+          urls=$(curl -fsS http://10.10.10.20:21200/sitemap.xml | grep -o '<loc>[^<]*</loc>' | sed 's/<loc>\(.*\)<\/loc>/"\1"/' | paste -sd, -)
           [ -n "$urls" ] || { echo "no URLs in the sitemap"; exit 1; }
           curl -fsS -o /dev/null -w 'indexnow: %{http_code}\n' -X POST "https://api.indexnow.org/indexnow" \
             -H 'Content-Type: application/json; charset=utf-8' \
