@@ -464,7 +464,7 @@ const allProjects = [
 // The build day in Montevideo as "YYYY-MM-DD". Next.js inlines BUILD_DATE_MVD
 // (next.config.mjs) so pages never read the clock; the sitemap script runs on
 // plain Node and computes it (en-CA formats dates as ISO).
-function buildDate() {
+export function buildDate() {
     return (
         process.env.BUILD_DATE_MVD ??
         new Intl.DateTimeFormat("en-CA", { timeZone: "America/Montevideo" }).format(new Date())

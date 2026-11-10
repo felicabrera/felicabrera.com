@@ -15,6 +15,7 @@ import matter from 'gray-matter';
 import {
     achievements,
     blogPath,
+    buildDate,
     casePath,
     news,
     profile,
@@ -64,8 +65,9 @@ function pagePairs() {
     return pairs;
 }
 
-// Blog posts are "<slug>.<lang>.mdx", paired by `translationKey`. Drafts are
-// skipped unless BLOG_SHOW_DRAFTS=1, matching the build.
+// Blog posts are "<slug>.<lang>.mdx", paired by `translationKey`. Drafts and
+// posts dated after the build day are skipped unless BLOG_SHOW_DRAFTS=1,
+// matching the build.
 function postPairs() {
     const showDrafts = process.env.BLOG_SHOW_DRAFTS === '1';
     let files;
@@ -80,7 +82,8 @@ function postPairs() {
         if (!m) continue;
         const [, slug, lang] = m;
         const { data } = matter(fs.readFileSync(path.join(BLOG_DIR, file), 'utf8'));
-        if (data.draft === true && !showDrafts) continue;
+        const scheduled = data.date && String(data.date).slice(0, 10) > buildDate();
+        if ((data.draft === true || scheduled) && !showDrafts) continue;
         const key = data.translationKey ?? slug;
         const entry = byKey.get(key) ?? { alternates: {}, lastmod: null, titles: {} };
         entry.titles[lang] = data.title ?? slug;
@@ -127,6 +130,10 @@ function buildLlms(posts) {
         '',
         '## Languages',
         `The site is bilingual. Spanish is the default (${url('/')}); English lives at ${url(homePath('en'))}, case studies at /work/<slug> (Spanish /trabajo/<slug>) and the blog at ${url(blogPath('en'))} (Spanish ${url(blogPath('es'))}). Press coverage is in Spanish.`,
+        '',
+        '## Feeds',
+        `- RSS, English: ${url(`${blogPath('en')}/feed.xml`)}`,
+        `- RSS, Spanish: ${url(`${blogPath('es')}/feed.xml`)}`,
         '',
         '## Projects',
         ...projects.map((p) => {

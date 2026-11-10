@@ -1,0 +1,82 @@
+---
+title: "ÁBACO: cuánto cuesta contar un millón de votos cifrados"
+description: "Medimos el pipeline criptográfico completo de una elección verificable: un millón de votos en 287 s, con 6,6 MiB de memoria y el conteo correcto. Cómo, y cómo leer los números."
+date: "2026-11-14"
+lang: "es"
+translationKey: "abaco-bench"
+project: "agora"
+tags: ["criptografía", "voto-electrónico", "benchmark", "rendimiento", "go"]
+author: "Felipe Cabrera"
+draft: true
+---
+
+Una frase aparece en casi cualquier propuesta de voto verificable: "el costo computacional de la criptografía es despreciable". Puede ser cierto, pero dicho así es una estimación sin respaldo. [ÁBACO](https://github.com/felicabrera/abaco) existe para convertirla en un número medido, reproducible y citable.
+
+No es un sistema de votación. Es un instrumento de medición: corre el pipeline criptográfico completo de [ÁGORA](https://github.com/felicabrera/agora), operación por operación, desde mil hasta diez millones de votos.
+
+## Qué mide
+
+Por cada papeleta: cifrar cada casilla con ElGamal exponencial, generar y verificar la prueba de conocimiento cero de que es 0 o 1, generar y verificar la prueba de que la papeleta tiene exactamente un voto, sumarla al total cifrado e insertarla en el árbol de Merkle de FARO. Al final: descifrado parcial de cada autoridad, combinación de Lagrange y recuperación del conteo.
+
+Y lo más importante: **al final de cada escala, el conteo descifrado se compara con el esperado. Si no coincide, la corrida falla.** Un benchmark de una operación incorrecta no vale nada.
+
+## El resultado
+
+En un AMD Ryzen 5 3600, un millón de votos se procesó en **287 segundos**, a unas **3.500 papeletas por segundo**, con **6,6 MiB** de memoria pico y el conteo correcto.
+
+En un Apple M5 Pro (18 cores), con dos candidatos:
+
+| Votos | Wall (mediana) | Trabajo de CPU | Papeletas/s | Heap pico |
+|---|---|---|---|---|
+| 1.000 | 171 ms | 2,9 s | 5.833 | 4,6 MiB |
+| 10.000 | 1,73 s | 29,2 s | 5.794 | 6,4 MiB |
+| 100.000 | 17,1 s | 288,7 s | 5.839 | 8,9 MiB |
+
+## Cómo leer estos números
+
+**La memoria es plana.** Cien veces más votos y el heap pasa de 4,6 a 8,9 MiB. Es, para mí, el resultado más valioso. No es casualidad: el pipeline nunca retiene todos los votos. Procesa por lotes; en paralelo cifra, prueba y verifica cada papeleta, y después, en orden, la suma al acumulador, la inserta en el Merkle y la descarta. El pico de memoria depende del tamaño del lote, de `log n` y de `√N`, no de la cantidad de votos.
+
+**Wall no es CPU.** A 100.000 votos el tiempo de reloj es 17,1 s, pero el trabajo de CPU sumado es 288,7 s: unas 17× de aceleración con 18 cores. Confundir los dos números es un error fácil de cometer y fácil de detectar, así que se reportan por separado.
+
+**El costo está en la verificabilidad.** Desglosado a 100.000 votos:
+
+| Operación | Mediana | % del pipeline |
+|---|---|---|
+| Verificar prueba `{0,1}` | 454 µs | 42,8 % |
+| Generar prueba `{0,1}` | 336 µs | 31,5 % |
+| Verificar 1-de-C | 228 µs | 10,8 % |
+| Cifrar | 95 µs | 9,5 % |
+| Generar 1-de-C | 110 µs | 5,3 % |
+| Suma homomórfica | 708 ns | 0,1 % |
+| Insertar en el Merkle | 333 ns | 0,0 % |
+
+Cifrar es menos del 10 %; las pruebas son cerca del 90 %. O sea: lo que hace distinto a ÁGORA, que cualquiera pueda verificar, es justo lo que domina dentro del núcleo criptográfico. Pero en términos absolutos son uno o dos milisegundos de cómputo por papeleta, nada frente a la red, la base de datos o la interfaz de una elección real. ÁBACO mide el núcleo, y no infla ni esconde ese matiz.
+
+## Auditar es barato
+
+Las pruebas de FARO se miden aparte, porque no están en el camino caliente. El log crece 1.000×, de mil a un millón de entradas, y la prueba de inclusión pasa de 10 a 20 hashes (320 → 640 bytes); verificarla, de 1,5 a 2,3 µs. Eso es `O(log n)`, no `O(n)`, y es el argumento entero de [FARO](https://github.com/felicabrera/faro).
+
+## Metodología
+
+- **Warmup** antes de medir y **repeticiones**, con la mediana como métrica principal; también media, p95 y p99.
+- Percentiles por **muestreo de reservorio** (8.192 muestras por operación), para tener estadística estable con memoria acotada incluso a diez millones de votos.
+- **Overhead del instrumento** medido y reportado: un par de `time.Now()` cuesta unos 78 ns.
+- **Determinismo:** la aleatoriedad sale de la semilla y del índice de cada papeleta, así que el resultado es idéntico con 1 core o con 8. Misma semilla, mismos ciphertexts, mismo conteo, en cualquier máquina.
+- **Cada corrida registra** CPU, versión de Go, commit, semilla y parámetros en un JSON autosuficiente.
+- **CI:** cada push corre las mismas escalas con la misma semilla y publica un diff de medianas contra el commit anterior, así los números son una serie temporal y no una foto.
+
+Para comprobar la memoria plana en serio, `GOMEMLIMIT` no alcanza (es un límite blando). Se corre en Docker con `--memory=1g --cpus=2`: ahí pasarse de 1 GB es un OOM kill, así que una corrida que termina lo demuestra.
+
+```console
+$ ./abaco bench --votes 1000,10000,100000 --repeat 3 --seed 42
+```
+
+## Lo que ÁBACO no dice
+
+- No mide red, base de datos ni interfaz. Solo el núcleo criptográfico.
+- La implementación es de referencia: no está auditada ni endurecida contra canales laterales.
+- Los tiempos dependen del hardware. Un número medido en una máquina no vale para otra sin volver a correrlo ahí.
+
+---
+
+Relacionado: [ÁBACO en GitHub](https://github.com/felicabrera/abaco) · [ÁGORA en GitHub](https://github.com/felicabrera/agora) · [FARO en GitHub](https://github.com/felicabrera/faro)

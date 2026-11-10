@@ -3,7 +3,7 @@ import InnerHeader from "@/components/InnerHeader";
 import PostBody from "@/components/blog/PostBody";
 import { SiteFooter } from "@/components/home/Sections";
 import { homePath, otherLocale, ui } from "@/data/i18n";
-import { site } from "@/data/portfolio";
+import { casePath, getProject, site } from "@/data/portfolio";
 import {
     blogBasePath,
     formatPostDate,
@@ -46,6 +46,10 @@ export default function BlogArticle({ lang, post, translationSlug }) {
     // Language switch points at the translated post when it exists, otherwise
     // at the other language's blog index.
     const otherHref = translationSlug ? postPath(other, translationSlug) : blogBasePath(other);
+    // Only a published project with a case study; a scheduled one is not in
+    // `projects` yet.
+    const project = frontmatter.project ? getProject(frontmatter.project) : null;
+    const caseProject = project?.caseStudy ? project : null;
 
     return (
         <div className="shell">
@@ -78,6 +82,17 @@ export default function BlogArticle({ lang, post, translationSlug }) {
 
                         <PostBody content={post.content} />
                     </article>
+
+                    {caseProject && (
+                        <aside className="post-case">
+                            <span className="kicker">
+                                {tr.partOfCase} {ui[lang].caseFile} {caseProject.caseStudy.number}
+                            </span>
+                            <Link href={casePath(caseProject, lang)}>
+                                {caseProject.shortTitle ?? caseProject.title} →
+                            </Link>
+                        </aside>
+                    )}
 
                     <nav className="post-foot" aria-label={tr.allPosts}>
                         <Link href={blogBasePath(lang)}>← {tr.back}</Link>
