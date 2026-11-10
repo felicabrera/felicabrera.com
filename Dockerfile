@@ -15,9 +15,13 @@ COPY . .
 # `npm run build` runs the postbuild sitemap generator as an npm lifecycle
 # hook. That hook is skipped when npm has ignore-scripts set, so the generator
 # is also invoked explicitly here to guarantee the sitemap is regenerated. It
-# shells out to git for lastmod dates; git is absent here, the generator
-# catches that and falls back to file mtimes, so the build still succeeds.
-RUN npm run build && node scripts/generate-sitemap.mjs
+# shells out to git for lastmod dates; git is absent here, so pages are listed
+# without lastmod (posts keep their frontmatter date) and the build succeeds.
+# BUILD_DATE changes daily so the scheduled deploy rebuilds instead of reusing
+# a cached layer: projects with a future `publishAt` appear only in a build
+# made on or after that day.
+ARG BUILD_DATE
+RUN echo "build date: ${BUILD_DATE:-unset}" && npm run build && node scripts/generate-sitemap.mjs
 
 FROM node:22-bookworm-slim AS runner
 WORKDIR /app

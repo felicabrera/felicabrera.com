@@ -2,13 +2,42 @@ import Link from "next/link";
 import InnerHeader from "@/components/InnerHeader";
 import PostBody from "@/components/blog/PostBody";
 import { SiteFooter } from "@/components/home/Sections";
-import { homePath, otherLocale } from "@/data/i18n";
+import { homePath, otherLocale, ui } from "@/data/i18n";
+import { site } from "@/data/portfolio";
 import {
     blogBasePath,
     formatPostDate,
     postPath,
     t,
 } from "@/lib/blog";
+import { JsonLd, breadcrumbSchema, ogImage, personId, websiteId } from "@/lib/seo";
+
+function postSchema(lang, post) {
+    const { title, description, date, tags } = post.frontmatter;
+    const url = `${site.url}${postPath(lang, post.slug)}`;
+    return [
+        {
+            "@type": "BlogPosting",
+            "@id": `${url}#post`,
+            headline: title,
+            description,
+            url,
+            mainEntityOfPage: url,
+            inLanguage: lang,
+            ...(date ? { datePublished: date } : {}),
+            keywords: tags.join(", "),
+            image: ogImage(lang).url,
+            author: { "@id": personId },
+            publisher: { "@id": personId },
+            isPartOf: { "@id": websiteId },
+        },
+        breadcrumbSchema([
+            { name: ui[lang].home, path: homePath(lang) },
+            { name: "blog", path: blogBasePath(lang) },
+            { name: title, path: postPath(lang, post.slug) },
+        ]),
+    ];
+}
 
 export default function BlogArticle({ lang, post, translationSlug }) {
     const tr = t[lang];
@@ -22,6 +51,7 @@ export default function BlogArticle({ lang, post, translationSlug }) {
         <div className="shell">
             <div className="inner">
                 <InnerHeader lang={lang} />
+                <JsonLd data={postSchema(lang, post)} />
                 <main>
                     <article className="post" lang={lang}>
                         <div className="blog-topbar">

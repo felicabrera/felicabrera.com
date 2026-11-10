@@ -55,6 +55,10 @@ export const profile = {
             "felipe cabrera",
             "ciberseguridad",
             "ctf",
+            "writeups ctf",
+            "voto electrónico",
+            "criptografía",
+            "uruguay",
             "nasa space apps",
             "data challenge",
             "machine learning",
@@ -65,11 +69,48 @@ export const profile = {
             "felipe cabrera",
             "cybersecurity",
             "ctf",
+            "ctf writeups",
+            "electronic voting",
+            "cryptography",
+            "uruguay",
             "nasa space apps",
             "data challenge",
             "machine learning",
             "python",
             "fastapi",
+        ],
+    },
+    // schema.org Person fields for search engines.
+    knowsAbout: {
+        es: [
+            "Ciberseguridad",
+            "Capture the Flag",
+            "Explotación de binarios",
+            "Criptografía aplicada",
+            "Voto electrónico verificable",
+            "Machine learning",
+            "Desarrollo backend",
+        ],
+        en: [
+            "Cybersecurity",
+            "Capture the Flag",
+            "Binary exploitation",
+            "Applied cryptography",
+            "Verifiable electronic voting",
+            "Machine learning",
+            "Backend development",
+        ],
+    },
+    awards: {
+        es: [
+            "NASA Space Apps Challenge 2025, 1er lugar nacional (Uruguay)",
+            "OEA Cyber Challenge 2026, 3er lugar nacional (Uruguay)",
+            "ANCAP Data Challenge 2025, mención especial corriente CCR",
+        ],
+        en: [
+            "NASA Space Apps Challenge 2025, 1st place nationally (Uruguay)",
+            "OEA Cyber Challenge 2026, 3rd place nationally (Uruguay)",
+            "ANCAP Data Challenge 2025, special mention for the CCR stream",
         ],
     },
 };
@@ -99,7 +140,169 @@ export function blogPath(lang) {
 // Projects listed under "01 trabajo". A project with `caseStudy` gets its own
 // page at /trabajo/<slug> (es) and /work/<slug> (en); otherwise the row links
 // straight to `url`.
-export const projects = [
+//
+// A project with `publishAt` ("YYYY-MM-DD") stays out of the site, its case
+// page and the sitemap until that day in Montevideo. The check runs at build
+// time, so the deploy workflow also rebuilds on a schedule to publish it. Set
+// SHOW_SCHEDULED=1 to preview scheduled projects locally.
+const allProjects = [
+    {
+        slug: "agora",
+        title: "ÁGORA + FARO",
+        year: "2026–2027",
+        description: {
+            es: "Voto electrónico verificable de extremo a extremo: ElGamal homomórfico, pruebas de conocimiento cero y FARO, un log público auditable. Medido con ÁBACO. Proyecto Final de Grado, UCU.",
+            en: "End-to-end verifiable electronic voting: homomorphic ElGamal, zero-knowledge proofs and FARO, a public auditable log. Measured with ÁBACO. Capstone thesis, UCU.",
+        },
+        tags: ["go", "elgamal", "zkp", "merkle"],
+        url: "https://github.com/felicabrera/agora",
+        caseStudy: {
+            number: "003",
+            facts: [
+                {
+                    label: { es: "tipo", en: "type" },
+                    value: {
+                        es: "Proyecto Final de Grado, Ingeniería en Informática (UCU)",
+                        en: "Capstone thesis, Computer Engineering (UCU)",
+                    },
+                },
+                {
+                    label: { es: "estado", en: "status" },
+                    value: { es: "En desarrollo, entrega en agosto de 2027", en: "In development, due August 2027" },
+                },
+                {
+                    label: { es: "equipo", en: "team" },
+                    value: "Felipe Cabrera · Stefano Francolino · Lucia Vazquez",
+                },
+                {
+                    label: "stack",
+                    value: "Go · ristretto255 · Tessera · C2SP tlog-tiles · PostgreSQL · Next.js",
+                },
+            ],
+            sections: [
+                {
+                    title: { es: "el problema", en: "the problem" },
+                    body: {
+                        es: "Quien pierde una votación necesita una razón para aceptar el resultado. Hoy esa razón es confiar en quien organizó el proceso. ÁGORA la reemplaza por una prueba matemática que cualquiera puede verificar por su cuenta, para sindicatos, colegios profesionales, cajas, clubes, cooperativas y universidades.",
+                        en: "Whoever loses a vote needs a reason to accept the result. Today that reason is trust in whoever ran the process. ÁGORA replaces it with a mathematical proof that anyone can check on their own, for unions, professional associations, pension funds, clubs, cooperatives and universities.",
+                    },
+                },
+                {
+                    title: { es: "ágora, el voto", en: "ágora, the vote" },
+                    body: {
+                        es: "El voto se cifra en el dispositivo del votante con ElGamal exponencial sobre ristretto255, junto con pruebas de conocimiento cero de que es válido, sin revelar cuál es. Los votos se suman cifrados y solo se descifra el total, con descifrado por umbral: ninguna autoridad tiene la clave completa. El sistema se piensa en niveles según el riesgo, desde voto remoto verificable hasta una urna presencial air-gapped con comprobante en papel (VVPAT).",
+                        en: "The ballot is encrypted on the voter's device with exponential ElGamal over ristretto255, together with zero-knowledge proofs that it is valid, without revealing the choice. Ballots are added up while encrypted and only the total is decrypted, using threshold decryption: no single authority holds the full key. The system is designed in tiers by risk, from verifiable remote voting to an air-gapped in-person voting machine with a paper receipt (VVPAT).",
+                    },
+                },
+                {
+                    title: { es: "faro, el registro", en: "faro, the log" },
+                    body: {
+                        es: "FARO es el log público append-only donde quedan los votos cifrados. Está construido sobre Tessera, la biblioteca de transparency.dev que también sostiene logs de Certificate Transparency, y se sirve con la API C2SP tlog-tiles. Con pruebas de inclusión y de consistencia, un votante confirma que su voto quedó registrado y un auditor confirma que el log nunca fue reescrito, sin confiar en el operador y sin blockchain.",
+                        en: "FARO is the public append-only log that holds the encrypted ballots. It is built on Tessera, the transparency.dev library that also backs Certificate Transparency logs, and served over the C2SP tlog-tiles API. With inclusion and consistency proofs, a voter can confirm their ballot was recorded and an auditor can confirm the log was never rewritten, without trusting the operator and without a blockchain.",
+                    },
+                },
+                {
+                    title: { es: "ábaco, la medición", en: "ábaco, the measurement" },
+                    body: {
+                        es: "ÁBACO es un benchmark en Go que mide el pipeline criptográfico completo de una elección: cifrar, probar, verificar, sumar, insertar en el log y descifrar por umbral. En un AMD Ryzen 5 3600, un millón de votos se procesó en 287 s, a unas 3.500 papeletas por segundo, con 6,6 MiB de memoria pico y el conteo correcto. Insertar un voto en FARO cuesta 390 ns, y verificar que está incluido en un log de un millón de entradas, 2,25 µs con una prueba de 640 bytes.",
+                        en: "ÁBACO is a Go benchmark that measures an election's full cryptographic pipeline: encrypt, prove, verify, add up, append to the log and threshold-decrypt. On an AMD Ryzen 5 3600, one million ballots were processed in 287 s, at about 3,500 ballots per second, with 6.6 MiB of peak memory and a correct tally. Appending a ballot to FARO costs 390 ns, and verifying that it is included in a log of one million entries takes 2.25 µs with a 640-byte proof.",
+                    },
+                },
+                {
+                    title: { es: "el estado", en: "the status" },
+                    body: {
+                        es: "Es nuestro Proyecto Final de Grado de Ingeniería en Informática en la Universidad Católica del Uruguay, con entrega en agosto de 2027. El núcleo criptográfico de ÁGORA y el servicio de log de FARO ya están en código público; el protocolo de elección, la verificación desde la CLI y el navegador, y el panel de administración están en desarrollo.",
+                        en: "It is our Computer Engineering capstone thesis at Universidad Católica del Uruguay, due in August 2027. ÁGORA's cryptographic core and FARO's log service are already public; the election protocol, verification from the CLI and the browser, and the admin panel are in development.",
+                    },
+                },
+            ],
+            links: [
+                {
+                    label: { es: "ágora en github", en: "ágora on github" },
+                    url: "https://github.com/felicabrera/agora",
+                    primary: true,
+                },
+                {
+                    label: { es: "faro en github", en: "faro on github" },
+                    url: "https://github.com/felicabrera/faro",
+                },
+                {
+                    label: { es: "ábaco en github", en: "ábaco on github" },
+                    url: "https://github.com/felicabrera/abaco",
+                },
+            ],
+        },
+    },
+    {
+        slug: "clavoware",
+        title: "Clavoware",
+        year: "2026",
+        publishAt: "2026-11-17",
+        description: {
+            es: "SaaS de control de vencimientos para supermercados: el equipo escanea al recibir y el encargado sabe cada mañana qué vence y qué hacer. App web offline-first, API en Go.",
+            en: "Expiry-date tracking SaaS for supermarkets: staff scan stock on arrival and managers know every morning what is about to expire and what to do. Offline-first web app, Go API.",
+        },
+        tags: ["go", "next.js", "postgres", "saas"],
+        url: "https://clavoware.com",
+        caseStudy: {
+            number: "004",
+            facts: [
+                {
+                    label: { es: "tipo", en: "type" },
+                    value: { es: "SaaS B2B para supermercados", en: "B2B SaaS for supermarkets" },
+                },
+                {
+                    label: { es: "estado", en: "status" },
+                    value: { es: "Acceso anticipado, 2026", en: "Early access, 2026" },
+                },
+                {
+                    label: { es: "idiomas", en: "languages" },
+                    value: { es: "Español · portugués · inglés", en: "Spanish · Portuguese · English" },
+                },
+                {
+                    label: "stack",
+                    value: "Go · Fiber · PostgreSQL · Next.js · next-intl · ZXing · Docker · Sentry",
+                },
+            ],
+            sections: [
+                {
+                    title: { es: "el problema", en: "the problem" },
+                    body: {
+                        es: "En un supermercado la mercadería vence en silencio en la góndola. Nadie revisa fechas producto por producto, y lo que se descubre tarde termina en la basura.",
+                        en: "In a supermarket, stock expires quietly on the shelf. Nobody checks dates product by product, and whatever is found too late ends up in the trash.",
+                    },
+                },
+                {
+                    title: { es: "el producto", en: "the product" },
+                    body: {
+                        es: "El personal escanea el código de barras con la cámara del celular al recibir la mercadería y carga la fecha en tres toques, incluso sin conexión. Cada día a las 08:00 el encargado recibe un resumen con lo que vence en 7 días, lo crítico a 3 días y qué hacer con cada cosa: rebajar, reubicar o retirar. Las cadenas comparan sus locales por merma.",
+                        en: "Staff scan the barcode with their phone camera when stock arrives and enter the date in three taps, even offline. Every day at 08:00 the manager gets a summary of what expires within 7 days, what is critical within 3, and what to do with each item: discount, move or remove it. Chains compare their stores by waste.",
+                    },
+                },
+                {
+                    title: { es: "la plataforma", en: "the platform" },
+                    body: {
+                        es: "Una API en Go con Fiber y PostgreSQL, y una app web en Next.js con escaneo por cámara (ZXing), cola de escaneos sin conexión que sincroniza al volver la señal y notificaciones push. Funciona en Android e iOS sin hardware dedicado, en español, portugués e inglés.",
+                        en: "A Go API built with Fiber and PostgreSQL, and a Next.js web app with camera scanning (ZXing), an offline scan queue that syncs when the connection returns, and push notifications. It runs on Android and iOS with no dedicated hardware, in Spanish, Portuguese and English.",
+                    },
+                },
+                {
+                    title: { es: "el estado", en: "the status" },
+                    body: {
+                        es: "Lanzado en 2026 en acceso anticipado para supermercados de Uruguay y la región.",
+                        en: "Launched in 2026 in early access for supermarkets in Uruguay and the region.",
+                    },
+                },
+            ],
+            links: [
+                {
+                    label: { es: "clavoware.com", en: "clavoware.com" },
+                    url: "https://clavoware.com",
+                    primary: true,
+                },
+            ],
+        },
+    },
     {
         slug: "hea",
         title: "HEA – Habitable Exoplanet Analyzer",
@@ -258,7 +461,25 @@ export const projects = [
     },
 ];
 
-export const featuredProject = projects[0];
+// The build day in Montevideo as "YYYY-MM-DD". Next.js inlines BUILD_DATE_MVD
+// (next.config.mjs) so pages never read the clock; the sitemap script runs on
+// plain Node and computes it (en-CA formats dates as ISO).
+function buildDate() {
+    return (
+        process.env.BUILD_DATE_MVD ??
+        new Intl.DateTimeFormat("en-CA", { timeZone: "America/Montevideo" }).format(new Date())
+    );
+}
+
+function isPublished(project) {
+    if (!project.publishAt || process.env.SHOW_SCHEDULED === "1") return true;
+    return project.publishAt <= buildDate();
+}
+
+export const projects = allProjects.filter(isPublished);
+
+// The hero teaser card; the only project with a `card`.
+export const featuredProject = projects.find((p) => p.slug === "hea");
 
 // "02 logros". `terminal` feeds the `ls logros/` lines in the hero.
 export const achievements = [

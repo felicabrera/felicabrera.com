@@ -15,9 +15,17 @@ name: Deploy
 # Secrets are only ever read into env: at the step that needs them, never
 # interpolated into a run: script, so a secret value cannot be reinterpreted as
 # shell syntax.
+#
+# It also runs on a schedule: projects with a future `publishAt` in
+# src/data/portfolio.js are left out of the build until that day, so a fresh
+# build has to happen on the day to publish them. 03:00 UTC is midnight in
+# Montevideo. Clavoware: 17 November.
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: "0 3 17 11 *"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -49,6 +57,7 @@ jobs:
 
       - name: Build and start the container
         run: |
+          export BUILD_DATE="$(date -u +%F)"
           docker compose -f "$RELEASE_DIR/docker-compose.yml" --project-directory "$RELEASE_DIR" \
             -p felicabrera up -d --build --remove-orphans
           docker image prune -f
