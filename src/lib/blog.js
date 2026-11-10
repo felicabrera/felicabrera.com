@@ -10,18 +10,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
-import { site } from "@/data/portfolio";
+import { blogPath, site } from "@/data/portfolio";
+import { defaultLocale } from "@/data/i18n";
 
-export const locales = ["es", "en"];
-export const defaultLocale = "es";
-
-// URL prefix for a locale. Default locale is unprefixed (/blog).
-export function localePrefix(lang) {
-    return lang === defaultLocale ? "" : `/${lang}`;
-}
+export { defaultLocale, locales, localePrefix } from "@/data/i18n";
 
 export function blogBasePath(lang) {
-    return `${localePrefix(lang)}/blog`;
+    return blogPath(lang);
 }
 
 export function postPath(lang, slug) {

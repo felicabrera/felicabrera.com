@@ -15,6 +15,7 @@ const SITE_URL = 'https://felicabrera.com';
 // Values for dynamic route segments, keyed by the route base that contains them.
 const DYNAMIC_PARAMS = {
     '/trabajo/[slug]': () => projectsWithCase().map((p) => p.slug),
+    '/work/[slug]': () => projectsWithCase().map((p) => p.slug),
 };
 
 function formatDate(d) {
@@ -35,7 +36,9 @@ function getPageRoutes(dir = APP_DIR, base = '') {
         if (stat.isDirectory()) {
             const isDashboardFolder = file.toLowerCase() === 'dashboard';
             if (!isErrorFolder && !isDashboardFolder) {
-                routes = routes.concat(getPageRoutes(fullPath, base + '/' + file));
+                // Route groups like "(es)" organize files but are not part of the URL.
+                const isRouteGroup = /^\(.+\)$/.test(file);
+                routes = routes.concat(getPageRoutes(fullPath, isRouteGroup ? base : base + '/' + file));
             }
         } else if (file === 'page.js' && !isErrorPage) {
             // For app router, page.js defines the route

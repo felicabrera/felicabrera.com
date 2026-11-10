@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 // Mobile-only (< 640px) menu: a 44px button that opens a dark overlay.
 // Hidden by CSS on larger screens, where the inline nav is shown instead.
-export default function MobileMenu({ links, social }) {
+export default function MobileMenu({ links, social, labels }) {
     const [open, setOpen] = useState(false);
 
     useEffect(() => {
@@ -28,11 +28,11 @@ export default function MobileMenu({ links, social }) {
                 onClick={() => setOpen((v) => !v)}
                 data-ga="nav:toggle"
             >
-                {open ? "cerrar ×" : "menú"}
+                {open ? labels.close : labels.open}
             </button>
 
             {open && (
-                <nav id="menu-movil" className="menu-overlay" aria-label="Principal">
+                <nav id="menu-movil" className="menu-overlay" aria-label={labels.nav}>
                     {links.map((link) => (
                         <a key={link.href} className="menu-link" href={link.href} onClick={close}>
                             <span>{link.label}</span>
@@ -41,7 +41,7 @@ export default function MobileMenu({ links, social }) {
                     ))}
                     <div className="menu-social">
                         {social.map((s) => (
-                            <a key={s.href} href={s.href} onClick={close}>
+                            <a key={s.href} href={s.href} hrefLang={s.hrefLang} onClick={close}>
                                 {s.label} ↗
                             </a>
                         ))}

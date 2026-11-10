@@ -108,6 +108,7 @@ h1, h2, h3, p, figure, dl, dd { margin: 0; }
 }
 .sec-head h2 { font-size: 14px; font-weight: 500; }
 .sec-head a { font-size: 13px; padding: 12px 0; margin: -12px 0; }
+.sec-head .sec-note { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 
 .kicker {
   font-family: var(--font-mono);
@@ -538,8 +539,8 @@ h1, h2, h3, p, figure, dl, dd { margin: 0; }
 @media (min-width: 640px) {
   .press-blog { flex-direction: row; flex-wrap: wrap; gap: 64px; margin-top: 96px; }
   .press-blog > .section { margin-top: 0; }
-  #prensa { flex: 2 1 520px; min-width: 0; }
-  #blog { flex: 1 1 300px; min-width: 0; }
+  .press-section { flex: 2 1 520px; min-width: 0; }
+  .writing-section { flex: 1 1 300px; min-width: 0; }
 }
 
 .press-row {
@@ -812,6 +813,8 @@ h1, h2, h3, p, figure, dl, dd { margin: 0; }
   margin-top: 40px;
 }
 @media (min-width: 640px) { .blog-topbar { margin-top: 64px; } }
+/* Case pages keep the taller gap their kicker had before the language switch. */
+@media (min-width: 640px) { .case-topbar { margin-top: 80px; } }
 
 .lang-switch {
   font-family: var(--font-mono);
