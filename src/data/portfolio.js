@@ -524,22 +524,22 @@ export const achievements = [
         },
     },
     {
-        title: "UTE Data Challenge",
+        title: "ANCAP Data Challenge",
         year: "2025",
         mark: "CCR",
-        award: { es: "Reconocimiento", en: "Recognition" },
+        award: { es: "Mención especial", en: "Special mention" },
         description: {
-            es: "Reconocimiento. Optimización de consumo energético con redes neuronales.",
-            en: "Recognition. Energy consumption optimization with neural networks.",
+            es: "Mención especial en la corriente CCR. Predicción de H2 y poder calorífico en la refinería de La Teja.",
+            en: "Special mention for the CCR stream. Predicting H2 content and heating value at the La Teja refinery.",
         },
         terminal: {
             long: {
-                es: ["ute-data-challenge_2025_reconocimiento"],
-                en: ["ute-data-challenge_2025_recognition"],
+                es: ["ancap-data-challenge_2025_mencion"],
+                en: ["ancap-data-challenge_2025_mention"],
             },
             short: {
-                es: ["ute-data-challenge_25_ccr"],
-                en: ["ute-data-challenge_25_ccr"],
+                es: ["ancap-data-challenge_25_ccr"],
+                en: ["ancap-data-challenge_25_ccr"],
             },
         },
     },
