@@ -1,0 +1,39 @@
+---
+title: "Lanzamos Clavoware: que no se venza nada en la góndola"
+description: "Clavoware sale en acceso anticipado: un SaaS para supermercados que avisa cada mañana qué vence y qué hacer. Por qué lo hicimos y cómo funciona."
+date: "2026-11-17"
+lang: "es"
+translationKey: "clavoware-launch"
+project: "clavoware"
+tags: ["clavoware", "saas", "supermercados", "go", "next.js"]
+author: "Felipe Cabrera"
+draft: true
+---
+
+Hoy sale [Clavoware](https://clavoware.com) en acceso anticipado.
+
+## El problema
+
+En un supermercado la mercadería vence en silencio en la góndola. Nadie revisa fechas producto por producto, y lo que se descubre tarde termina en la basura. No es un problema de gente descuidada: es un problema de información que llega tarde.
+
+## Cómo funciona
+
+1. **Al recibir la mercadería**, el personal escanea el código de barras con la cámara del celular y carga la fecha de vencimiento en tres toques. Funciona sin conexión: los escaneos quedan en cola y se sincronizan cuando vuelve la señal.
+2. **Cada día a las 08:00**, el encargado recibe un resumen: lo que vence en los próximos 7 días, lo crítico a 3 días, y qué hacer con cada cosa: rebajar, reubicar o retirar.
+3. **Las cadenas comparan sus locales** por merma, para ver dónde se pierde más y por qué.
+
+No hace falta hardware dedicado: anda en Android y en iOS, en español, portugués e inglés.
+
+## Por dentro
+
+- Una **API en Go** con Fiber y PostgreSQL.
+- Una **app web en Next.js**, offline-first, con escaneo por cámara (ZXing), cola de escaneos sin conexión y notificaciones push.
+- Docker para desplegar y Sentry para enterarnos de los errores antes que los usuarios.
+
+## Acceso anticipado
+
+Estamos abriendo Clavoware a supermercados de Uruguay y la región. Si tenés o gestionás uno y querés probarlo, entrá a [clavoware.com](https://clavoware.com).
+
+---
+
+Relacionado: [caso de estudio de Clavoware](/trabajo/clavoware) · [clavoware.com](https://clavoware.com)

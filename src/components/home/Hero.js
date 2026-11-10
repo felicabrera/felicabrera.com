@@ -8,7 +8,9 @@ import {
     flag,
     formatDate,
     profile,
+    sectionId,
 } from "@/data/portfolio";
+import { tx, ui } from "@/data/i18n";
 
 // Widths (%) of the redacted lines in the clipping; `null` is a paragraph gap.
 // Mobile shows only the first three lines, at the widths in `mobileWidths`.
@@ -35,7 +37,8 @@ function AchievementLine({ parts }) {
     );
 }
 
-function Terminal() {
+function Terminal({ lang }) {
+    const tr = ui[lang];
     const [first, last] = profile.name.toLowerCase().split(" ");
     return (
         <div className="sheet-terminal lift">
@@ -45,30 +48,30 @@ function Terminal() {
                 <br />
                 {last}
             </h1>
-            <div>{profile.tagline}</div>
+            <div>{tx(profile.tagline, lang)}</div>
 
             <div className="hide-mobile">
                 <div className="gap" />
-                <Prompt>cat ubicacion</Prompt>
+                <Prompt>cat {tr.location}</Prompt>
                 <div>{profile.location.toLowerCase()}</div>
             </div>
 
             <div className="gap" />
-            <Prompt>ls logros/</Prompt>
+            <Prompt>ls {tr.achievementsDir}/</Prompt>
             {achievements.map((a) => (
                 <div key={a.title}>
                     <span className="hide-mobile">
-                        <AchievementLine parts={a.terminal.long} />
+                        <AchievementLine parts={tx(a.terminal.long, lang)} />
                     </span>
                     <span className="only-mobile">
-                        <AchievementLine parts={a.terminal.short} />
+                        <AchievementLine parts={tx(a.terminal.short, lang)} />
                     </span>
                 </div>
             ))}
 
             <div className="hide-mobile">
                 <div className="gap" />
-                <Prompt>./contacto --email</Prompt>
+                <Prompt>./{tr.contactCmd} --email</Prompt>
                 <div>
                     <a href={`mailto:${profile.email}`}>{profile.email}</a>
                 </div>
@@ -82,14 +85,18 @@ function Terminal() {
     );
 }
 
-function Clipping() {
+function Clipping({ lang }) {
+    const stamp = tx(featuredNews.stamp, lang);
     return (
         <div className="sheet-clip lift">
             <div className="clip-meta">
                 <span>{featuredNews.source}</span>
-                <span>{formatDate(featuredNews.date, { long: true })}</span>
+                <span>{formatDate(featuredNews.date, { long: true, lang })}</span>
             </div>
-            <h2 className="clip-headline">{featuredNews.headline}</h2>
+            {/* The clipping reproduces the article, so it stays in its original language. */}
+            <h2 className="clip-headline" lang={featuredNews.lang}>
+                {featuredNews.headline}
+            </h2>
             <div className="redacted" aria-hidden="true">
                 {redactedLines.map((w, i) => (
                     <span
@@ -99,59 +106,61 @@ function Clipping() {
                     />
                 ))}
             </div>
-            {featuredNews.stamp && (
+            {stamp && (
                 <div className="stamp">
-                    {featuredNews.stamp[0]}
+                    {stamp[0]}
                     <br />
-                    {featuredNews.stamp[1]}
+                    {stamp[1]}
                 </div>
             )}
         </div>
     );
 }
 
-export default function Hero() {
+export default function Hero({ lang }) {
+    const tr = ui[lang];
+    const projectName = featuredProject.shortTitle ?? featuredProject.title;
     return (
         <section id="top" className="hero">
             <figure className="spread">
                 <div className="spread-pages">
-                    <Terminal />
-                    <Clipping />
+                    <Terminal lang={lang} />
+                    <Clipping lang={lang} />
                 </div>
                 <figcaption className="spread-caption">
-                    <span className="hide-mobile">desclasificado: </span>
-                    <a className="u" href={featuredNews.url}>
-                        publicado en {featuredNews.source}
+                    <span className="hide-mobile">{tr.declassified}</span>
+                    <a className="u" href={featuredNews.url} hrefLang={featuredNews.lang}>
+                        {tr.publishedIn} {featuredNews.source}
                     </a>
                 </figcaption>
             </figure>
 
-            <div className="hero-cards" aria-label="Destacados">
+            <div className="hero-cards" aria-label={tr.highlights}>
                 <figure>
                     <Link
-                        href={casePath(featuredProject)}
+                        href={casePath(featuredProject, lang)}
                         className="card card-hea"
-                        aria-label={`Ver caso: ${featuredProject.shortTitle ?? featuredProject.title}`}
+                        aria-label={`${tr.viewCase}: ${projectName}`}
                     >
-                        <span className="tl">FLUJO RELATIVO<span className="hide-mobile"> · KEPLER</span></span>
+                        <span className="tl">{tr.relativeFlux}<span className="hide-mobile"> · KEPLER</span></span>
                         <span className="tr">{featuredProject.card.metric}</span>
                         <LightCurve variant="card" />
                         <span className="bl">
-                            <span className="hide-mobile">tránsito detectado → </span>ver caso ↗
+                            <span className="hide-mobile">{tr.transitDetected}</span>{tr.seeCase}
                         </span>
                     </Link>
-                    <figcaption className="card-caption">{featuredProject.card.caption}</figcaption>
+                    <figcaption className="card-caption">{tx(featuredProject.card.caption, lang)}</figcaption>
                 </figure>
 
                 <figure>
-                    <a href="#logros" className="card card-flag" aria-label="Ver logros en CTF">
+                    <a href={`#${sectionId("achievements", lang)}`} className="card card-flag" aria-label={tr.viewCtf}>
                         <span className="flag">{flag.text}</span>
                         <span className="bl">
-                            <span className="hide-mobile">{flag.meta}</span>
-                            <span className="only-mobile">{flag.metaShort}</span>
+                            <span className="hide-mobile">{tx(flag.meta, lang)}</span>
+                            <span className="only-mobile">{tx(flag.metaShort, lang)}</span>
                         </span>
                     </a>
-                    <figcaption className="card-caption">{flag.caption}</figcaption>
+                    <figcaption className="card-caption">{tx(flag.caption, lang)}</figcaption>
                 </figure>
             </div>
         </section>

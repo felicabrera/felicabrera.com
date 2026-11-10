@@ -20,6 +20,7 @@
 # production
 /build
 /public/sitemap.xml
+/public/llms.txt
 
 # misc
 .DS_Store
@@ -40,3 +41,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Internal blog source material and research notes (not for the public repo)
+content/blog/_*
