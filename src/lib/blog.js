@@ -10,8 +10,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
-import { blogPath, site } from "@/data/portfolio";
+import { blogPath, languageAlternates, profile, site } from "@/data/portfolio";
 import { defaultLocale } from "@/data/i18n";
+import { openGraph } from "@/lib/seo";
 
 export { defaultLocale, locales, localePrefix } from "@/data/i18n";
 
@@ -118,6 +119,22 @@ export function getTranslationSlug(translationKey, lang) {
     return match ? match.slug : null;
 }
 
+// Next.js metadata for the blog index.
+export function blogIndexMetadata(lang) {
+    const url = `${site.url}${blogBasePath(lang)}`;
+    const title = t[lang].metaTitle;
+    const description = t[lang].metaDescription;
+    return {
+        title: `${title} | ${profile.name}`,
+        description,
+        alternates: {
+            canonical: url,
+            languages: languageAlternates({ es: blogBasePath("es"), en: blogBasePath("en") }),
+        },
+        openGraph: openGraph(lang, { title, description, url }),
+    };
+}
+
 // Next.js metadata for a post page, including hreflang alternates that pair the
 // Spanish and English versions. A draft is marked noindex.
 export function buildPostMetadata(lang, slug) {
@@ -131,16 +148,21 @@ export function buildPostMetadata(lang, slug) {
     if (enSlug) languages.en = `${site.url}${postPath("en", enSlug)}`;
     languages["x-default"] = languages.es ?? `${site.url}${postPath(lang, slug)}`;
     const url = `${site.url}${postPath(lang, slug)}`;
+    const { title, description, date, tags } = post.frontmatter;
     return {
-        title: `${post.frontmatter.title} | Felipe Cabrera`,
-        description: post.frontmatter.description,
+        title: `${title} | Felipe Cabrera`,
+        description,
+        keywords: tags,
         alternates: { canonical: url, languages },
-        openGraph: {
-            title: post.frontmatter.title,
-            description: post.frontmatter.description,
-            type: "article",
+        openGraph: openGraph(lang, {
+            title,
+            description,
             url,
-        },
+            type: "article",
+            ...(date ? { publishedTime: date } : {}),
+            authors: [site.url],
+            tags,
+        }),
         ...(post.frontmatter.draft ? { robots: { index: false, follow: false } } : {}),
     };
 }
@@ -162,6 +184,9 @@ export function formatPostDate(iso, lang = defaultLocale) {
 export const t = {
     es: {
         kicker: "blog",
+        metaTitle: "Blog: ciberseguridad, writeups de CTF e ingeniería",
+        metaDescription:
+            "Writeups de CTF, ciberseguridad, criptografía y proyectos de datos e IA, escritos por Felipe Cabrera desde Uruguay.",
         indexTitle: "Ingeniería, espacio & código.",
         indexDescription:
             "Notas sobre seguridad, CTFs, datos y lo que voy aprendiendo en el camino.",
@@ -177,6 +202,9 @@ export const t = {
     },
     en: {
         kicker: "blog",
+        metaTitle: "Blog: cybersecurity, CTF writeups and engineering",
+        metaDescription:
+            "CTF writeups, cybersecurity, cryptography, and data and AI projects, written by Felipe Cabrera from Uruguay.",
         indexTitle: "Engineering, space & code.",
         indexDescription: "Notes on security, CTFs, data, and what I learn along the way.",
         empty: "I'm writing the first posts. Check back soon.",

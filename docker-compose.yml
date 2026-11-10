@@ -8,6 +8,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        BUILD_DATE: ${BUILD_DATE:-}
     image: felicabrera-web:latest
     container_name: felicabrera-web
     restart: unless-stopped

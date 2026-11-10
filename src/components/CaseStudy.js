@@ -11,7 +11,8 @@ import {
     projectsWithCase,
     site,
 } from "@/data/portfolio";
-import { ogLocale, otherLocale, tx, ui } from "@/data/i18n";
+import { homePath, otherLocale, tx, ui } from "@/data/i18n";
+import { JsonLd, breadcrumbSchema, openGraph, personId } from "@/lib/seo";
 
 export function caseStaticParams() {
     return projectsWithCase().map((p) => ({ slug: p.slug }));
@@ -34,8 +35,31 @@ export function caseMetadata(slug, lang) {
             canonical: url,
             languages: languageAlternates({ es: casePath(project, "es"), en: casePath(project, "en") }),
         },
-        openGraph: { title: name, description, url, type: "article", locale: ogLocale[lang] },
+        openGraph: openGraph(lang, { title: name, description, url, type: "article" }),
     };
+}
+
+function caseSchema(project, lang) {
+    const url = `${site.url}${casePath(project, lang)}`;
+    const name = project.shortTitle ?? project.title;
+    return [
+        {
+            "@type": "CreativeWork",
+            "@id": `${url}#work`,
+            name: project.title,
+            description: tx(project.description, lang),
+            url,
+            inLanguage: lang,
+            dateCreated: project.year.slice(0, 4),
+            keywords: project.tags.join(", "),
+            creator: { "@id": personId },
+            sameAs: project.url,
+        },
+        breadcrumbSchema([
+            { name: ui[lang].home, path: homePath(lang) },
+            { name, path: casePath(project, lang) },
+        ]),
+    ];
 }
 
 // Case study page. The caller has already checked the project has a case study.
@@ -51,6 +75,7 @@ export default function CaseStudy({ project, lang }) {
         <div className="shell">
             <div className="inner">
                 <InnerHeader lang={lang} />
+                <JsonLd data={caseSchema(project, lang)} />
 
                 <main>
                     <div className="blog-topbar case-topbar">
