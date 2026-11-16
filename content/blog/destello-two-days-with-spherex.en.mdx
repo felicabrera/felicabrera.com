@@ -1,0 +1,51 @@
+---
+title: "Destello: two days, little sleep and the infrared sky in motion"
+description: "How I built Destello for the NASA Space Apps Challenge 2026: SPHEREx all-sky images turned into time-lapses, the research behind it, the bugs, and a weekend of very little sleep."
+date: "2026-11-16"
+lang: "en"
+translationKey: "destello-space-apps"
+project: "destello"
+tags: ["nasa-space-apps", "spherex", "astronomy", "python", "hackathon"]
+author: "Felipe Cabrera"
+draft: false
+---
+
+The NASA Space Apps Challenge 2026 ran on the weekend of 14 and 15 November. I picked the challenge "Planet X and SPHEREx", worked alone for the team Never be Frog, and submitted [Destello](/work/destello) on Sunday. This is the story of those two days: little sleep and one of the most fun builds I have done.
+
+## The telescope
+
+SPHEREx is a NASA infrared space telescope launched in March 2025. It observes the sky in 102 colors between 0.75 and 5 micrometers and maps the whole sky every six months. That second part is what the challenge was about: if you have the same patch of sky at different dates, you can compare. Whatever moves or changes between epochs shows up.
+
+The motivation is Planet X, the hypothesis that a large planet hides far beyond Neptune and shapes the orbits of distant icy bodies. Nobody has seen it. A distant body moves very slowly, so finding one means comparing the sky over long baselines, and a public archive of repeated all-sky images is exactly the raw material for that.
+
+## The idea
+
+The archive is public, but it is a pile of single exposures. I wanted something a curious person could use: type coordinates or the name of an object, and watch that patch of sky blink between epochs. The name Destello is the Spanish word for a flash, the brief spark that betrays something moving.
+
+Behind the animation there is a lot of plumbing. The backend queries NASA's IRSA archive, downloads cutouts, calibrates them, reprojects them onto a common grid and stacks the exposures of each epoch. Positions are propagated to the observation date using Gaia, so a fast star does not get misplaced. The frontend draws the sky with Aladin Lite, and the whole interface works in Spanish and English.
+
+## Measure, do not just show
+
+The decision that shaped the weekend: a pretty animation proves nothing. If the tool says something moved, it should be able to say by how much, and be checked against a published value.
+
+So I made Destello measure the proper motion of known stars and compare it with Gaia. Barnard's Star, a red dwarf about six light years away, moves roughly 10.4 arcseconds per year, one of the fastest motions in the sky. Destello measured 10351.9 mas/yr against 10393.3 from Gaia, within half a sigma. WISE 0855-0714, one of the coldest brown dwarfs known, came out within about one sigma too. I also added checks on flux scale, difference images, a variable star (R Draconis, a Mira variable that changes by 0.3 magnitudes between epochs) and the interstellar comet 3I/ATLAS, where the CO2 band is detected at 6.5 sigma in the August 2025 campaign.
+
+Not everything passed, and I kept it that way. Of 30 registered checks, 26 pass, 1 fails and 3 are not measurable. One difference image around RW Aurigae shows a dipole I cannot explain, and the repo says so. Twice I corrected a method after seeing a result, and in both cases I published the earlier result next to the corrected one. A validation table that only shows green is not validation.
+
+## What went wrong
+
+Two days before the event, IRSA replaced SPHEREx Quick Release 2 with Data Release 1 and removed the old collection from its query service. The backend had to move to the new data while I was building on it, and a few numbers changed under my feet, which is how the RW Aurigae dipole appeared.
+
+On my Windows machine the Python interpreter could not load its SSL module, so every network call had to run inside Docker. It was slow, but it meant the whole stack was reproducible from the start.
+
+And then the sleep. Saturday blurred into Sunday, and the small joy of seeing a known star land where Gaia said it should kept me going.
+
+## What I take from it
+
+I came in for the code and stayed for the sky. Reading a catalog of brown dwarfs, learning why proper motion is measured in milliarcseconds per year, watching a comet's spectrum come out of public data: that is the part I will remember. Everything is open: the code is on [GitHub](https://github.com/felicabrera/destello) under the MIT license, and the tool is live at [destello.felicabrera.com](https://destello.felicabrera.com).
+
+The project is submitted and the global nominees will be announced on 3 December. For now I am just going to sleep.
+
+---
+
+Related: [Destello case study](/work/destello) · [NASA Space Apps Challenge](https://www.spaceappschallenge.org/2026/find-a-team/never-be-frog1/?tab=project)

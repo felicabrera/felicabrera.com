@@ -225,6 +225,101 @@ export function aboutPath(lang) {
 // SHOW_SCHEDULED=1 to preview scheduled projects locally.
 const allProjects = [
     {
+        slug: "destello",
+        title: "Destello",
+        year: "2026",
+        description: {
+            es: "Mira cómo se mueve el cielo infrarrojo: imágenes de todo el cielo de SPHEREx convertidas en animaciones de cualquier punto, con imágenes de diferencia, espectros y movimientos propios medidos. NASA Space Apps 2026.",
+            en: "Watch the infrared sky move: NASA SPHEREx all-sky images turned into time-lapses of any sky position, with difference images, spectra and measured proper motions. NASA Space Apps 2026.",
+        },
+        tags: ["python", "fastapi", "react", "astropy"],
+        url: "https://destello.felicabrera.com",
+        caseStudy: {
+            number: "005",
+            facts: [
+                {
+                    label: { es: "evento", en: "event" },
+                    value: "NASA Space Apps Challenge 2026",
+                },
+                {
+                    label: { es: "desafío", en: "challenge" },
+                    value: "Planet X and SPHEREx",
+                },
+                {
+                    label: { es: "equipo", en: "team" },
+                    value: "Never be Frog · Felipe Cabrera Bisio",
+                },
+                {
+                    label: { es: "estado", en: "status" },
+                    value: {
+                        es: "Presentado, en línea en destello.felicabrera.com",
+                        en: "Submitted, live at destello.felicabrera.com",
+                    },
+                },
+                {
+                    label: "stack",
+                    value: "Python · FastAPI · astropy · photutils · React · TypeScript · Aladin Lite · Docker",
+                },
+            ],
+            sections: [
+                {
+                    title: { es: "el problema", en: "the problem" },
+                    body: {
+                        es: "SPHEREx es el telescopio infrarrojo de la NASA que fotografía todo el cielo cada seis meses. Sus imágenes están públicas, pero son cientos de exposiciones sueltas en un archivo pensado para astrónomos. El desafío pedía una herramienta para mirar esos datos en el tiempo y encontrar lo que se mueve o cambia, la pista que seguiría un cuerpo lejano del sistema solar como el hipotético Planeta X.",
+                        en: "SPHEREx is NASA's infrared telescope that images the whole sky every six months. Its images are public, but they are hundreds of loose exposures in an archive built for astronomers. The challenge asked for a tool to look at that data over time and find what moves or changes, the clue a distant solar system body such as the hypothetical Planet X would leave.",
+                    },
+                },
+                {
+                    title: { es: "el producto", en: "the product" },
+                    body: {
+                        es: "Destello es una herramienta web pública y bilingüe. Se ingresan coordenadas o el nombre de un objeto y se obtiene una animación de parpadeo de ese punto del cielo entre las épocas de observación, con imágenes de diferencia, catálogos superpuestos, espectros y un informe descargable. Estrellas cercanas, enanas marrones, asteroides, cometas y variables se ven moverse o cambiar de brillo. Es el método del parpadeo con el que se encontró Plutón, al alcance de cualquiera con un navegador. Suma una vista de 16 años que une WISE y NEOWISE con SPHEREx, un modo para cometas con efemérides de JPL Horizons y un modo Hunt para revisar campos candidatos.",
+                        en: "Destello is a public, bilingual web tool. You enter coordinates or an object name and get a blink animation of that patch of sky across the observation epochs, with difference images, catalog overlays, spectra and a downloadable report. Nearby stars, brown dwarfs, asteroids, comets and variable stars show up moving or changing in brightness. It is the blink method that found Pluto, within reach of anyone with a browser. It adds a 16-year view that joins WISE and NEOWISE to SPHEREx, a moving-target mode for comets using JPL Horizons ephemerides, and a Hunt mode to review candidate fields.",
+                    },
+                },
+                {
+                    title: { es: "el pipeline", en: "the pipeline" },
+                    body: {
+                        es: "El backend en Python consulta IRSA (SPHEREx Data Release 1 y Quick Release 3), descarga recortes, los calibra, los reproyecta a una grilla común y los apila por época con ponderación por varianza. Las posiciones se propagan a la fecha de cada observación con Gaia DR3, y cada cuadro se puede rastrear hasta sus imágenes de origen. Los trabajos pesados corren en workers con Redis y el frontend en React dibuja el cielo con Aladin Lite.",
+                        en: "The Python backend queries IRSA (SPHEREx Data Release 1 and Quick Release 3), downloads cutouts, calibrates them, reprojects them onto a common grid and stacks them by epoch with inverse-variance weighting. Positions are propagated to each observation date with Gaia DR3, and every frame can be traced back to its source images. Heavy jobs run in workers backed by Redis, and the React frontend draws the sky with Aladin Lite.",
+                    },
+                },
+                {
+                    title: { es: "la validación", en: "the validation" },
+                    body: {
+                        es: "Lo que distingue a Destello es que mide en lugar de solo mostrar. Calcula el movimiento propio de estrellas conocidas en las imágenes de SPHEREx y lo compara con valores publicados: 10351,9 ± 598,4 mas/año para la Estrella de Barnard contra 10393,3 de Gaia DR3 (0,4 sigma). De 30 comprobaciones registradas, 26 pasan, 1 falla y 3 no son medibles, y las fallas se publican con su causa.",
+                        en: "What sets Destello apart is that it measures rather than only displays. It computes the proper motion of known stars in SPHEREx images and compares it with published values: 10351.9 ± 598.4 mas/yr for Barnard's Star against 10393.3 from Gaia DR3 (0.4 sigma). Of 30 registered checks, 26 pass, 1 fails and 3 are not measurable, and the failures are published with their cause.",
+                    },
+                },
+                {
+                    title: { es: "el estado", en: "the status" },
+                    body: {
+                        es: "Presentado al NASA Space Apps Challenge 2026 por el equipo Never be Frog, trabajado en solitario durante el fin de semana del evento en Montevideo. Está en línea, con código abierto bajo licencia MIT, interfaz completa en español e inglés y operable con teclado.",
+                        en: "Submitted to the NASA Space Apps Challenge 2026 by team Never be Frog, built solo over the event weekend in Montevideo. It is live, open source under the MIT license, with a full Spanish and English interface and keyboard operation.",
+                    },
+                },
+            ],
+            links: [
+                {
+                    label: { es: "destello en línea", en: "destello live" },
+                    url: "https://destello.felicabrera.com",
+                    primary: true,
+                },
+                {
+                    label: { es: "código en github", en: "code on github" },
+                    url: "https://github.com/felicabrera/destello",
+                },
+                {
+                    label: { es: "video de demostración", en: "demonstration video" },
+                    url: "https://drive.google.com/file/d/1wrkMZpVctaZ6aGbne_sPdvTjmCnuIA-v/view?usp=sharing",
+                },
+                {
+                    label: { es: "proyecto en space apps", en: "project on space apps" },
+                    url: "https://www.spaceappschallenge.org/2026/find-a-team/never-be-frog1/?tab=project",
+                },
+            ],
+        },
+    },
+    {
         slug: "agora",
         title: "ÁGORA + FARO",
         year: "2026–2027",
