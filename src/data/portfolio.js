@@ -272,8 +272,8 @@ const allProjects = [
                 {
                     title: { es: "el producto", en: "the product" },
                     body: {
-                        es: "Destello es una herramienta web pública y bilingüe. Se ingresan coordenadas o el nombre de un objeto y se obtiene una animación de parpadeo de ese punto del cielo entre las épocas de observación, con imágenes de diferencia, catálogos superpuestos, espectros y un informe descargable. Estrellas cercanas, enanas marrones, asteroides, cometas y variables se ven moverse o cambiar de brillo.",
-                        en: "Destello is a public, bilingual web tool. You enter coordinates or an object name and get a blink animation of that patch of sky across the observation epochs, with difference images, catalog overlays, spectra and a downloadable report. Nearby stars, brown dwarfs, asteroids, comets and variable stars show up moving or changing in brightness.",
+                        es: "Destello es una herramienta web pública y bilingüe. Se ingresan coordenadas o el nombre de un objeto y se obtiene una animación de parpadeo de ese punto del cielo entre las épocas de observación, con imágenes de diferencia, catálogos superpuestos, espectros y un informe descargable. Estrellas cercanas, enanas marrones, asteroides, cometas y variables se ven moverse o cambiar de brillo. Es el método del parpadeo con el que se encontró Plutón, al alcance de cualquiera con un navegador. Suma una vista de 16 años que une WISE y NEOWISE con SPHEREx, un modo para cometas con efemérides de JPL Horizons y un modo Hunt para revisar campos candidatos.",
+                        en: "Destello is a public, bilingual web tool. You enter coordinates or an object name and get a blink animation of that patch of sky across the observation epochs, with difference images, catalog overlays, spectra and a downloadable report. Nearby stars, brown dwarfs, asteroids, comets and variable stars show up moving or changing in brightness. It is the blink method that found Pluto, within reach of anyone with a browser. It adds a 16-year view that joins WISE and NEOWISE to SPHEREx, a moving-target mode for comets using JPL Horizons ephemerides, and a Hunt mode to review candidate fields.",
                     },
                 },
                 {
@@ -307,6 +307,10 @@ const allProjects = [
                 {
                     label: { es: "código en github", en: "code on github" },
                     url: "https://github.com/felicabrera/destello",
+                },
+                {
+                    label: { es: "video de demostración", en: "demonstration video" },
+                    url: "https://drive.google.com/file/d/1wrkMZpVctaZ6aGbne_sPdvTjmCnuIA-v/view?usp=sharing",
                 },
                 {
                     label: { es: "proyecto en space apps", en: "project on space apps" },
